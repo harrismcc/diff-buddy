@@ -13,7 +13,9 @@ import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as DemoConvexRouteImport } from './routes/demo/convex'
-import { Route as ApiBlogRouteImport } from './routes/api.blog'
+import { Route as PrPrNumberRouteRouteImport } from './routes/pr.$prNumber/route'
+import { Route as PrPrNumberIndexRouteImport } from './routes/pr.$prNumber/index'
+import { Route as PrPrNumberDiffRouteImport } from './routes/pr.$prNumber/diff'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiTqTodosRouteImport } from './routes/demo/api.tq-todos'
@@ -43,10 +45,20 @@ const DemoConvexRoute = DemoConvexRouteImport.update({
   path: '/demo/convex',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiBlogRoute = ApiBlogRouteImport.update({
-  id: '/api/blog',
-  path: '/api/blog',
+const PrPrNumberRouteRoute = PrPrNumberRouteRouteImport.update({
+  id: '/pr/$prNumber',
+  path: '/pr/$prNumber',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PrPrNumberIndexRoute = PrPrNumberIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PrPrNumberRouteRoute,
+} as any)
+const PrPrNumberDiffRoute = PrPrNumberDiffRouteImport.update({
+  id: '/diff',
+  path: '/diff',
+  getParentRoute: () => PrPrNumberRouteRoute,
 } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
   id: '/demo/start/server-funcs',
@@ -92,13 +104,15 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
-  '/api/blog': typeof ApiBlogRoute
+  '/pr/$prNumber': typeof PrPrNumberRouteRouteWithChildren
   '/demo/convex': typeof DemoConvexRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/pr/$prNumber/diff': typeof PrPrNumberDiffRoute
+  '/pr/$prNumber/': typeof PrPrNumberIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -107,13 +121,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
-  '/api/blog': typeof ApiBlogRoute
   '/demo/convex': typeof DemoConvexRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/pr/$prNumber/diff': typeof PrPrNumberDiffRoute
+  '/pr/$prNumber': typeof PrPrNumberIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -123,13 +138,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/blog': typeof BlogRoute
-  '/api/blog': typeof ApiBlogRoute
+  '/pr/$prNumber': typeof PrPrNumberRouteRouteWithChildren
   '/demo/convex': typeof DemoConvexRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/pr/$prNumber/diff': typeof PrPrNumberDiffRoute
+  '/pr/$prNumber/': typeof PrPrNumberIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -140,13 +157,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/blog'
-    | '/api/blog'
+    | '/pr/$prNumber'
     | '/demo/convex'
     | '/demo/tanstack-query'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/pr/$prNumber/diff'
+    | '/pr/$prNumber/'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -155,13 +174,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/blog'
-    | '/api/blog'
     | '/demo/convex'
     | '/demo/tanstack-query'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/pr/$prNumber/diff'
+    | '/pr/$prNumber'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -170,13 +190,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/blog'
-    | '/api/blog'
+    | '/pr/$prNumber'
     | '/demo/convex'
     | '/demo/tanstack-query'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/pr/$prNumber/diff'
+    | '/pr/$prNumber/'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -186,7 +208,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlogRoute: typeof BlogRoute
-  ApiBlogRoute: typeof ApiBlogRoute
+  PrPrNumberRouteRoute: typeof PrPrNumberRouteRouteWithChildren
   DemoConvexRoute: typeof DemoConvexRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
@@ -229,12 +251,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoConvexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/blog': {
-      id: '/api/blog'
-      path: '/api/blog'
-      fullPath: '/api/blog'
-      preLoaderRoute: typeof ApiBlogRouteImport
+    '/pr/$prNumber': {
+      id: '/pr/$prNumber'
+      path: '/pr/$prNumber'
+      fullPath: '/pr/$prNumber'
+      preLoaderRoute: typeof PrPrNumberRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/pr/$prNumber/': {
+      id: '/pr/$prNumber/'
+      path: '/'
+      fullPath: '/pr/$prNumber/'
+      preLoaderRoute: typeof PrPrNumberIndexRouteImport
+      parentRoute: typeof PrPrNumberRouteRoute
+    }
+    '/pr/$prNumber/diff': {
+      id: '/pr/$prNumber/diff'
+      path: '/diff'
+      fullPath: '/pr/$prNumber/diff'
+      preLoaderRoute: typeof PrPrNumberDiffRouteImport
+      parentRoute: typeof PrPrNumberRouteRoute
     }
     '/demo/start/server-funcs': {
       id: '/demo/start/server-funcs'
@@ -295,10 +331,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface PrPrNumberRouteRouteChildren {
+  PrPrNumberDiffRoute: typeof PrPrNumberDiffRoute
+  PrPrNumberIndexRoute: typeof PrPrNumberIndexRoute
+}
+
+const PrPrNumberRouteRouteChildren: PrPrNumberRouteRouteChildren = {
+  PrPrNumberDiffRoute: PrPrNumberDiffRoute,
+  PrPrNumberIndexRoute: PrPrNumberIndexRoute,
+}
+
+const PrPrNumberRouteRouteWithChildren = PrPrNumberRouteRoute._addFileChildren(
+  PrPrNumberRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogRoute: BlogRoute,
-  ApiBlogRoute: ApiBlogRoute,
+  PrPrNumberRouteRoute: PrPrNumberRouteRouteWithChildren,
   DemoConvexRoute: DemoConvexRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,

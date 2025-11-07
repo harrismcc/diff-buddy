@@ -35,15 +35,17 @@ const DiffViewer = ({ diff }: { diff: string }) => {
 								</span>
 							</div>
 						</div>
-						<Diff
-							hunks={file.hunks}
-							fileName={file.newPath}
-							type={file.type}
-						>
-							{file.hunks.map((hunk, hunkIndex) => (
-								<Hunk key={hunkIndex} hunk={hunk} />
-							))}
-						</Diff>
+						<div className="overflow-x-auto">
+							<Diff
+								hunks={file.hunks}
+								fileName={file.newPath}
+								type={file.type}
+							>
+								{file.hunks.map((hunk, hunkIndex) => (
+									<Hunk key={hunkIndex} hunk={hunk} />
+								))}
+							</Diff>
+						</div>
 					</div>
 				);
 			})}

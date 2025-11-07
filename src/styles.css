@@ -20,28 +20,6 @@ code {
 }
 
 :root {
-
-  /** Diff Viewer Colors*/
-  --mono-1: hsl(210, 100%, 70%);
-  --mono-2: hsl(210, 100%, 70%);
-  --mono-3: hsl(210, 100%, 70%);
-  --hue-1: hsl(210, 100%, 70%);
-  --hue-2: hsl(210, 100%, 70%);
-  --hue-3: hsl(210, 100%, 70%);
-  --hue-4: hsl(210, 100%, 70%);
-  --hue-5: hsl(210, 100%, 70%);
-  --hue-5-2: hsl(210, 100%, 70%);
-  --hue-6: hsl(210, 100%, 70%);
-  --hue-6-2: hsl(210, 100%, 70%);
-  --syntax-fg: hsl(210, 100%, 70%);
-  --syntax-bg: hsl(210, 100%, 70%);
-  --syntax-gutter: hsl(210, 100%, 70%);
-  --syntax-guide: hsl(210, 100%, 70%);
-  --syntax-accent: hsl(210, 100%, 70%);
-  --syntax-selection-color: hsl(210, 100%, 70%);
-  --syntax-gutter-background-color-selected: hsl(210, 100%, 70%);
-  --syntax-cursor-line: hsl(210, 100%, 70%);
-
   /** Base Theme Colors */
   --background: oklch(0.98 0.01 93.48);
   --foreground: oklch(0.34 0.03 94.42);

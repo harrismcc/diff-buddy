@@ -101,7 +101,7 @@ export const Diff: React.FC<DiffProps> = ({
 			<table
 				{...props}
 				className={cn(
-					"[--code-added:var(--color-green-500)] [--code-removed:var(--color-orange-600)] font-mono text-[0.8rem] w-full m-0 border-separate border-0 outline-none overflow-x-auto border-spacing-0 text-foreground",
+					"[--code-added:var(--color-green-500)] [--code-removed:var(--color-orange-600)] font-mono text-[0.8rem] w-full m-0 border-separate border-0 outline-none border-spacing-0 text-foreground",
 					className,
 				)}
 			>

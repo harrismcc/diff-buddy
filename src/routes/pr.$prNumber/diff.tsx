@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createFileRoute } from "@tanstack/react-router";
-import { MarkdownViewer } from "../components/MarkdownViewer";
+import DiffViewer from "../../components/DiffViewer";
 
-export const Route = createFileRoute("/blog")({
+export const Route = createFileRoute("/pr/$prNumber/diff")({
 	component: BlogPage,
-	loader: async () => {
+	loader: async ({ params }) => {
 		// Read the markdown file from the project root
-		const filePath = join(process.cwd(), "data/1625.md");
+		const filePath = join(process.cwd(), `data/${params.prNumber}.diff`);
 		const content = await readFile(filePath, "utf-8");
 		return content;
 	},
@@ -16,9 +16,5 @@ export const Route = createFileRoute("/blog")({
 function BlogPage() {
 	const data = Route.useLoaderData();
 
-	return (
-		<div className="container mx-auto px-4 py-8">
-			<MarkdownViewer content={data} />
-		</div>
-	);
+	return <DiffViewer diff={data} />;
 }

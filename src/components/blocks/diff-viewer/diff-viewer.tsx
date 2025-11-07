@@ -1,4 +1,4 @@
-import { Diff, Hunk } from "@/components/diff";
+import { Diff, Hunk } from "@/components/ui/diff";
 
 import {
   CollapsibleCard,

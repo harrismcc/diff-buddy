@@ -1,0 +1,1599 @@
+diff --git a/.env.development b/.env.development
+index f50134d5d..ba25b2797 100644
+Binary files a/.env.development and b/.env.development differ
+diff --git a/.env.production b/.env.production
+index 876757462..e43bfb67c 100644
+Binary files a/.env.production and b/.env.production differ
+diff --git a/.env.staging b/.env.staging
+index 1dca25a07..4690ad40d 100644
+Binary files a/.env.staging and b/.env.staging differ
+diff --git a/app/components/forum/RegulationCombobox.module.scss b/app/components/forum/RegulationCombobox.module.scss
+index e6c055dce..416f1f408 100644
+--- a/app/components/forum/RegulationCombobox.module.scss
++++ b/app/components/forum/RegulationCombobox.module.scss
+@@ -4,7 +4,7 @@
+ }
+ 
+ .searchInput {
+-  width: 100%;
++  width: 100% !important; // !important is needed to consistently override the SearchInput's pre-defined width.
+ }
+ 
+ // Temporarily commented out scroll shadow styling.
+diff --git a/app/components/forum/RegulationsAdminViewer.tsx b/app/components/forum/RegulationsAdminViewer.tsx
+deleted file mode 100644
+index aa1a364e7..000000000
+--- a/app/components/forum/RegulationsAdminViewer.tsx
++++ /dev/null
+@@ -1,137 +0,0 @@
+-import { useMemo, useState } from 'react';
+-
+-import { Box, Button, Card, Flex, Link, Select, Text, TextField } from '@radix-ui/themes';
+-import { Link as RemixLink } from '@remix-run/react';
+-
+-import {
+-  getRegulationNodeTrees,
+-  getRegulationSets,
+-  RegulationNode,
+-} from '../../../data/regulations';
+-
+-import { RegulationCombobox } from './RegulationCombobox';
+-
+-interface RegulationsTableProps {
+-  jurisdictionId: number | null;
+-}
+-
+-type RegulationsView = 'picker' | 'tree';
+-
+-/**
+- * Admin-level viewer to display and assess regulation nodes.
+- */
+-export const RegulationsAdminViewer: React.FC<RegulationsTableProps> = ({ jurisdictionId }) => {
+-  const [view, setView] = useState<RegulationsView>('picker');
+-  const [limit, setLimit] = useState(50);
+-  const [selectedRegIds, setSelectedRegIds] = useState<string[]>([]);
+-  const regSet = useMemo(() => {
+-    return jurisdictionId ? getRegulationSets(jurisdictionId) : null;
+-  }, [jurisdictionId]);
+-
+-  const trees = useMemo(() => {
+-    return jurisdictionId ? getRegulationNodeTrees(jurisdictionId) : [];
+-  }, [jurisdictionId]);
+-
+-  if (!jurisdictionId || !regSet) {
+-    return <Box>No Jurisdiction ID available</Box>;
+-  }
+-
+-  return (
+-    <Box>
+-      <Flex py='2' align='center' justify='between'>
+-        <Text size='4'>Regulations</Text>
+-        <Flex align='center' gap='2'>
+-          <Flex align='center' gap='2' hidden={view !== 'picker'}>
+-            <Text size='1'>Limit</Text>
+-            <TextField.Root
+-              size='1'
+-              type='number'
+-              value={limit}
+-              onChange={(e) => setLimit(Number(e.target.value))}
+-            />
+-          </Flex>
+-          <Select.Root size='1' value={view} onValueChange={(v) => setView(v as RegulationsView)}>
+-            <Select.Trigger>
+-              <Text>{view === 'picker' ? 'Picker View' : 'Tree View'}</Text>
+-            </Select.Trigger>
+-            <Select.Content>
+-              <Select.Item value='picker'>Picker View</Select.Item>
+-              <Select.Item value='tree'>Tree View</Select.Item>
+-            </Select.Content>
+-          </Select.Root>
+-        </Flex>
+-      </Flex>
+-      {view === 'tree' ? (
+-        <Flex direction='column' gap='4'>
+-          {trees.map((t, i) => (
+-            <RegulationsTree key={`t_${i}`} regulationNode={t} />
+-          ))}
+-        </Flex>
+-      ) : (
+-        <Card style={{ padding: 0, width: 'fit-content', margin: 'auto' }}>
+-          <RegulationCombobox
+-            selectedRegulationIds={selectedRegIds}
+-            setSelectedRegulationIds={setSelectedRegIds}
+-            jurisdictionId={jurisdictionId}
+-            placeholder='Search regulations by title or citation'
+-            limit={limit}
+-          />
+-        </Card>
+-      )}
+-    </Box>
+-  );
+-};
+-
+-/**
+- * RegulationsTree displays a hierarchical view of regulation nodes and their relationships.
+- * Each node shows its title, short title, URL, and can be expanded to show child nodes.
+- *
+- * This component is primarily used as a developer tool to:
+- * - Visualize and verify the regulation node hierarchy
+- * - Debug the structure of regulation data
+- * - Test navigation links between regulation nodes
+- */
+-function RegulationsTree({ regulationNode }: { regulationNode?: RegulationNode }) {
+-  const [expanded, setExpanded] = useState(false);
+-  if (!regulationNode) {
+-    return null;
+-  }
+-  const { title, shortTitle, url, children } = regulationNode;
+-  return (
+-    <Card>
+-      <Flex justify='between' align='center'>
+-        <Box>
+-          <Box>
+-            {title} (
+-            <Link asChild>
+-              <RemixLink to={url} target='_blank'>
+-                {shortTitle}
+-              </RemixLink>
+-            </Link>
+-            )
+-          </Box>
+-        </Box>
+-        {children.length ? (
+-          <Button onClick={() => setExpanded(!expanded)}>
+-            {!expanded ? 'Expand' : 'Collapse'}
+-          </Button>
+-        ) : (
+-          <Text size='1' color='gray'>
+-            No children
+-          </Text>
+-        )}
+-      </Flex>
+-      {expanded && (
+-        <Box py='2'>
+-          {children.map((regChild) => {
+-            return (
+-              <Box py='2' px='4' key={`regtree_${regChild.id}`}>
+-                <RegulationsTree key={regChild.id} regulationNode={regChild} />
+-              </Box>
+-            );
+-          })}
+-        </Box>
+-      )}
+-    </Card>
+-  );
+-}
+diff --git a/app/routes/_admin.admin.organizations.$organizationId._index.tsx b/app/routes/_admin.admin.organizations.$organizationId._index.tsx
+index d9d788777..b0f521b37 100644
+--- a/app/routes/_admin.admin.organizations.$organizationId._index.tsx
++++ b/app/routes/_admin.admin.organizations.$organizationId._index.tsx
+@@ -28,7 +28,6 @@ import {
+ 
+ import { hasAvailableCalculatorType } from '../../modules/calculator/calculatorTypes.server';
+ import { hasCalculatorConfig } from '../../modules/calculator/config.server';
+-import { RegulationsAdminViewer } from '../components/forum/RegulationsAdminViewer';
+ import { TopicTagPicker } from '../components/forum/TopicTagPicker';
+ import { OrganizationBasicInfoForm } from '../components/organization/OrganizationBasicInfoForm';
+ import { OrganizationDomainsEditForm } from '../components/organization/OrganizationDomainsEditForm';
+@@ -51,7 +50,7 @@ import { formDataToObject } from '../utils/form-data';
+ import { pageTitle } from '../utils/page-meta';
+ import { getAppRootUrl } from '../utils/url.server';
+ 
+-import AdminReferencesTab from './_references/components/admin/AdminReferencesTab';
++import ReferencesAdminTab from './_references/components/admin/ReferencesAdminTab';
+ import { getReferenceConfig } from './_references/config';
+ 
+ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+@@ -258,9 +257,8 @@ export default function AdminOrganizationPage() {
+             <Tabs.Trigger value='profile'>Basic Info</Tabs.Trigger>
+             <Tabs.Trigger value='domains'>Domains</Tabs.Trigger>
+             <Tabs.Trigger value='accela'>Accela</Tabs.Trigger>
+-            <Tabs.Trigger value='regulations'>Regulations</Tabs.Trigger>
+             <Tabs.Trigger value='references' disabled={!showReferencesTab}>
+-              References (Temp Debug){!showReferencesTab && ' - (NOT CONFIGURED)'}
++              References
+             </Tabs.Trigger>
+             {showCalculatorTab && (
+               <Tabs.Trigger
+@@ -551,14 +549,9 @@ export default function AdminOrganizationPage() {
+               </Flex>
+             </Box>
+           </Tabs.Content>
+-          <Tabs.Content value='regulations'>
+-            <Box py='2'>
+-              <RegulationsAdminViewer jurisdictionId={organization.jurisdictionPlaceId} />
+-            </Box>
+-          </Tabs.Content>
+           <Tabs.Content value='references'>
+             <Box py='2'>
+-              <AdminReferencesTab jurisdictionId={organization.jurisdictionPlaceId} />
++              <ReferencesAdminTab jurisdictionId={organization.jurisdictionPlaceId} />
+             </Box>
+           </Tabs.Content>
+         </Tabs.Root>
+diff --git a/app/routes/_app.suggestReferences.ts b/app/routes/_app.suggestReferences.ts
+index d86e72b08..393fefd9c 100644
+--- a/app/routes/_app.suggestReferences.ts
++++ b/app/routes/_app.suggestReferences.ts
+@@ -9,7 +9,7 @@ import { captureServerError } from '../services/sentry.server';
+ import { getReferencesSpiceClient } from '../services/spice.server';
+ import { sanitizeQueryInput } from '../utils/spiceHelpers';
+ 
+-import { getReferenceConfig } from './_references/config';
++import { getReferenceConfigStrict } from './_references/config';
+ 
+ export const loader: LoaderFunction = async ({ request }) => {
+   const user = await authenticatedUser(request);
+@@ -34,35 +34,22 @@ export const loader: LoaderFunction = async ({ request }) => {
+     throw new Response('No jurisdictionPlaceId', { status: 404 });
+   }
+ 
+-  const config = getReferenceConfig(organization.jurisdictionPlaceId, { strict: true });
+-
+-  if (!config || !config.datasets.length) {
+-    throw new Response(`No datasets for jurisdiction ${organization.jurisdictionPlaceId}`, {
+-      status: 404,
+-    });
+-  }
++  const config = getReferenceConfigStrict(organization.jurisdictionPlaceId);
+ 
+   const spiceClient = await getReferencesSpiceClient();
+ 
+   const sanitizedQuery = sanitizeQueryInput(query);
+ 
+-  // Construct the query to search across all datasets using UNION ALL
+-  const datasetQueries = config.datasets.map(
+-    (dataset) => `
++  // Query the single merged dataset view
++  const combinedQuery = `
+     SELECT *
+     FROM rrf(
+-        text_search(${dataset}, '${sanitizedQuery}', title, rank_weight => 1000000000),
+-        text_search(${dataset}, '${sanitizedQuery}', shortTitle, rank_weight => 1000000000),
+-        vector_search(${dataset}, '${sanitizedQuery}', title, rank_weight => 1),
+-        vector_search(${dataset}, '${sanitizedQuery}', shortTitle, rank_weight => 1),
++        text_search(${config.dataset}, '${sanitizedQuery}', title, rank_weight => 1000000000),
++        text_search(${config.dataset}, '${sanitizedQuery}', shortTitle, rank_weight => 1000000000),
++        vector_search(${config.dataset}, '${sanitizedQuery}', title, rank_weight => 1),
++        vector_search(${config.dataset}, '${sanitizedQuery}', shortTitle, rank_weight => 1),
+         join_key => 'id'
+-    )`,
+-  );
+-
+-  const combinedQuery = `
+-    SELECT * FROM (
+-      ${datasetQueries.join('\n      UNION ALL\n')}
+-    ) AS combined
++    )
+     ORDER BY fused_score DESC
+     LIMIT 5;
+   `;
+diff --git a/app/routes/_references/_api.references/queries.server.ts b/app/routes/_references/_api.references/queries.server.ts
+index 56b33eba1..b2b40eb9c 100644
+--- a/app/routes/_references/_api.references/queries.server.ts
++++ b/app/routes/_references/_api.references/queries.server.ts
+@@ -1,22 +1,21 @@
+ /**
+  * SpiceAI queries for reference nodes.
++ * Datasource will either be SpiceAI or Typesense.
+  *
+- * @TODO
+- * - Create a "list" query that returns all references
++ * SpiceAI is primarily used for ingestion and organizing the raw reference node data
++ * into jurisdiction-segmented views (with root and parent title data attached)
++ *
++ * TypeSense is used for fast full-text search access of said data.
++ *
++ * @NOTE we may replace SpiceAI entirely for reference node functionality since Typesense is so fast. TBD.
+  */
+-import { getReferenceConfigStrict, ReferenceConfigTab } from '../config';
++import { getReferencesSpiceClient } from '../../../services/spice.server';
++import { getReferenceConfigStrict } from '../config';
+ 
+-import { spiceClient } from './spice.server';
++import { listTypesense, searchTypesense } from './typesense-queries.server';
+ 
+ const DEFAULT_LIMIT = 10;
+ 
+-/**
+- * Helper to build a union of all datasets for a jurisdiction.
+- */
+-function buildJurisdictionMergedTableQuery(datasets: string[]): string {
+-  return datasets.map((ds) => `SELECT * FROM ${ds}`).join(' UNION ALL ');
+-}
+-
+ /**
+  * Escape user inputs for use in SQL queries.
+  * Spice doesn't currently support parameterized queries,
+@@ -37,66 +36,46 @@ export interface ReferenceSearchParams {
+ }
+ 
+ /**
+- * Simple list query for a tab.
+- */
+-function buildListTabReferencesQuery(
+-  tab: ReferenceConfigTab,
+-  params: ReferenceSearchParams,
+-): string {
+-  const mergedTableQuery = buildJurisdictionMergedTableQuery(tab.datasets);
+-
+-  const limit = params.limit ?? 50;
+-  const rootIdFilter = tab.rootIds?.length
+-    ? `AND node.rootId IN (${tab.rootIds.map((id) => `'${sanitizeQueryInput(id)}'`).join(', ')})`
+-    : '';
+-
+-  return `
+-    WITH jurisdiction_datasets AS (${mergedTableQuery})
+-    SELECT
+-      node.*,
+-      parent.title as parentTitle,
+-      root.shortTitle as rootShortTitle
+-    FROM jurisdiction_datasets node
+-    LEFT JOIN jurisdiction_datasets parent on parent.id = node.parentId
+-    LEFT JOIN jurisdiction_datasets root on root.id = node.rootId
+-    WHERE node.nodeType != 'grouping' ${rootIdFilter}
+-    LIMIT ${limit}
+-  `;
+-}
+-
+-/**
+- * Craft the query and hit the Spice search service.
++ * Search references using Typesense.
+  */
+ export async function searchReferences(params: ReferenceSearchParams) {
+   const config = getReferenceConfigStrict(params.jurisdictionId);
+-
+   const tab = config.tabs.find((t) => t.id === params.tabId);
+   if (!tab) {
+     throw new Error(`Unknown tabId: ${params.tabId}`);
+   }
+ 
+-  // simple list if no search
+-  // we can't use the .search call unless we have search text, so we run a sql query instead
++  const collectionName = config.dataset;
++
++  // Build filter for nodeType and rootIds
++  const filters: string[] = ['nodeType:!=grouping'];
++  if (tab.rootIds?.length) {
++    /** @WARNING - it's expected that stored ID's don't have special chars that would break this filter query syntax */
++    const rootIdFilter = tab.rootIds.map((id) => `rootId:=${id}`).join(' || ');
++    filters.push(`(${rootIdFilter})`);
++  }
++  const filterBy = filters.join(' && ');
++
++  // If no search query, list documents with filters
+   if (!params.search) {
+-    const query = buildListTabReferencesQuery(tab, params);
+-    const results = await spiceClient.sqlJson(query);
+-    return results.data;
++    const results = await listTypesense({
++      collectionName,
++      filterBy,
++      limit: params.limit ?? DEFAULT_LIMIT,
++    });
++    return results;
+   }
+ 
+-  // otherwise, search across the datasets using the spice .search call
+-  // note: we need to make an additional call to batchFindReferences to get each results parent and root title data
+-  // apparently there's a way to get joined data directly with the additional_datasets parameter, but I'm not sure how to do that yet
+-  const rootIdFilter = tab.rootIds
+-    ? ` AND rootId IN (${tab.rootIds.map((id) => `'${sanitizeQueryInput(id)}'`).join(', ')})`
+-    : '';
+-  const query = await spiceClient.search(params.search, {
+-    datasets: tab.datasets,
+-    where: `nodeType != 'grouping' ${rootIdFilter}`,
++  // Search across title, shortTitle, and parentTitle fields
++  const results = await searchTypesense({
++    collectionName,
++    query: params.search,
++    queryBy: ['title', 'shortTitle', 'parentTitle'],
++    filterBy,
+     limit: params.limit ?? DEFAULT_LIMIT,
+   });
+-  const ids = query.results.map((d) => d.primary_key.id) as string[];
+-  const results = await batchFindReferences({ ids, jurisdictionId: params.jurisdictionId });
+-  return ids.map((id) => results.find((r) => r.id === id)).filter((res) => !!res);
++
++  return results;
+ }
+ 
+ export interface ReferenceFindParams {
+@@ -109,20 +88,23 @@ export interface ReferenceFindParams {
+  */
+ export async function findReferenceById(params: ReferenceFindParams) {
+   const config = getReferenceConfigStrict(params.jurisdictionId);
+-  const mergedTableQuery = buildJurisdictionMergedTableQuery(config.datasets);
++  const dataset = config.dataset;
+ 
+   const query = `
+-    WITH jurisdiction_datasets AS (${mergedTableQuery})
+-    SELECT 
+-      node.*,
+-      root.shortTitle as rootShortTitle,
+-      parent.title as parentTitle
+-    FROM jurisdiction_datasets node
+-    LEFT JOIN jurisdiction_datasets root on root.id = node.rootId
+-    LEFT JOIN jurisdiction_datasets parent on parent.id = node.parentId
+-    WHERE node.id = '${sanitizeQueryInput(params.id)}' 
++    SELECT
++      node.id,
++      node.title,
++      node.shortTitle,
++      node.parentTitle,
++      node.rootShortTitle,
++      node.url,
++      node.nodeType
++    FROM ${dataset} node
++    WHERE node.id = '${sanitizeQueryInput(params.id)}'
+     LIMIT 1
+   `;
++
++  const spiceClient = await getReferencesSpiceClient();
+   const results = await spiceClient.sqlJson(query);
+   return results.data?.[0] ?? null;
+ }
+@@ -138,22 +120,24 @@ export interface ReferenceBatchFindParams {
+ export async function batchFindReferences(params: ReferenceBatchFindParams) {
+   if (!params.ids.length) return [];
+ 
+-  const datasets = getReferenceConfigStrict(params.jurisdictionId).datasets;
+-  const mergedTableQuery = buildJurisdictionMergedTableQuery(datasets);
++  const dataset = getReferenceConfigStrict(params.jurisdictionId).dataset;
+ 
+   const idList = params.ids.map((id) => `'${sanitizeQueryInput(id)}'`).join(', ');
+   const query = `
+-    WITH jurisdiction_datasets AS (${mergedTableQuery})
+     SELECT
+-      node.*,
+-      parent.title as parentTitle,
+-      root.shortTitle as rootShortTitle
+-    FROM jurisdiction_datasets node
+-    LEFT JOIN jurisdiction_datasets parent on parent.id = node.parentId
+-    LEFT JOIN jurisdiction_datasets root on root.id = node.rootId
++      node.id,
++      node.title,
++      node.shortTitle,
++      node.parentTitle,
++      node.rootShortTitle,
++      node.url,
++      node.nodeType
++    FROM ${dataset} node
+     WHERE node.id IN (${idList})
+-    LIMIT ${params.ids.length} -- this is needed. hangs without it
++    LIMIT ${params.ids.length}
+   `;
++
++  const spiceClient = await getReferencesSpiceClient();
+   const results = await spiceClient.sqlJson(query);
+   return results.data ?? [];
+ }
+@@ -169,23 +153,25 @@ export interface ReferenceChildrenParams {
+  */
+ export async function findReferenceChildren(params: ReferenceChildrenParams) {
+   const config = getReferenceConfigStrict(params.jurisdictionId);
+-  const mergedTableQuery = buildJurisdictionMergedTableQuery(config.datasets);
++  const dataset = config.dataset;
+ 
+   const whereClause = params.parentId
+     ? `node.parentId = '${sanitizeQueryInput(params.parentId)}'`
+     : 'node.id = node.rootId AND node.parentId IS NULL';
+   const query = `
+-    WITH jurisdiction_datasets AS (${mergedTableQuery})
+     SELECT
+-      node.*,
+-      parent.title as parentTitle,
+-      root.shortTitle as rootShortTitle
+-    FROM jurisdiction_datasets node
+-    LEFT JOIN jurisdiction_datasets parent on parent.id = node.parentId
+-    LEFT JOIN jurisdiction_datasets root on root.id = node.rootId
++      node.id,
++      node.title,
++      node.shortTitle,
++      node.parentTitle,
++      node.rootShortTitle,
++      node.url,
++      node.nodeType
++    FROM ${dataset} node
+     WHERE ${whereClause}
+   `;
+ 
++  const spiceClient = await getReferencesSpiceClient();
+   const results = await spiceClient.sqlJson(query);
+   return results.data ?? [];
+ }
+diff --git a/app/routes/_references/_api.references/spice.server.ts b/app/routes/_references/_api.references/spice.server.ts
+deleted file mode 100644
+index 7adb45dec..000000000
+--- a/app/routes/_references/_api.references/spice.server.ts
++++ /dev/null
+@@ -1,24 +0,0 @@
+-/**
+- * Instantiation of Spice AI client for the reference node application.
+- * @see {@link https://docs.spice.ai/sdks/node.js-sdk}
+- */
+-import { SpiceClient } from '@spiceai/spice';
+-
+-const { SPICE_REFERENCES_API_KEY, SPICE_REFERENCES_HTTP_URL, SPICE_REFERENCES_FLIGHT_URL } =
+-  process.env;
+-
+-if (!SPICE_REFERENCES_API_KEY) {
+-  throw new Error('No SPICE_REFERENCES_API_KEY specified');
+-}
+-if (!SPICE_REFERENCES_HTTP_URL) {
+-  throw new Error('No SPICE_REFERENCES_HTTP_URL specified');
+-}
+-if (!SPICE_REFERENCES_FLIGHT_URL) {
+-  throw new Error('No SPICE_REFERENCES_FLIGHT_URL specified');
+-}
+-
+-export const spiceClient = new SpiceClient({
+-  apiKey: SPICE_REFERENCES_API_KEY,
+-  httpUrl: SPICE_REFERENCES_HTTP_URL,
+-  flightUrl: SPICE_REFERENCES_FLIGHT_URL,
+-});
+diff --git a/app/routes/_references/_api.references/typesense-queries.server.ts b/app/routes/_references/_api.references/typesense-queries.server.ts
+new file mode 100644
+index 000000000..d42c904d5
+--- /dev/null
++++ b/app/routes/_references/_api.references/typesense-queries.server.ts
+@@ -0,0 +1,93 @@
++import { collection } from 'typesense-ts';
++
++import { captureException } from '@sentry/remix';
++
++import { getTypesenseClient } from '../../../services/typesense.server';
++
++/**
++ * Define a minimal collection schema for reference documents.
++ * This schema works for any collection (sf, nyc_view, etc.)
++ */
++function createReferenceCollection(collectionName: string) {
++  return collection({
++    name: collectionName,
++    fields: [
++      { name: 'id', type: 'string', index: false },
++      { name: 'title', type: 'string' },
++      { name: 'shortTitle', type: 'string' },
++      { name: 'parentTitle', type: 'string' },
++      { name: 'rootShortTitle', type: 'string', index: false },
++      { name: 'url', type: 'string', index: false },
++      { name: 'nodeType', type: 'string' }, // filterable
++      { name: 'rootId', type: 'string' }, // filterable
++      { name: 'parentId', type: 'string', index: false },
++    ],
++  });
++}
++
++type ReferenceFieldName = 'title' | 'shortTitle' | 'parentTitle';
++
++export interface TypesenseSearchParams {
++  collectionName: string;
++  query: string;
++  queryBy: ReferenceFieldName[];
++  filterBy?: string;
++  limit?: number;
++}
++
++/**
++ * List documents from a Typesense collection (no search query).
++ * Uses wildcard search with filtering.
++ */
++export async function listTypesense(params: Omit<TypesenseSearchParams, 'query' | 'queryBy'>) {
++  try {
++    const config = await getTypesenseClient();
++    const col = createReferenceCollection(params.collectionName);
++
++    const results = await col.search(
++      {
++        q: '*', // wildcard to match all documents
++        query_by: [],
++        filter_by: params.filterBy,
++        per_page: params.limit ?? 50,
++      },
++      config,
++    );
++
++    return results.hits?.map((hit) => hit.document) ?? [];
++  } catch (error) {
++    captureException(error, {
++      tags: { function: 'listTypesense' },
++      extra: { params },
++    });
++    return []; // graceful error
++  }
++}
++
++/**
++ * Search a Typesense collection.
++ */
++export async function searchTypesense(params: TypesenseSearchParams) {
++  try {
++    const config = await getTypesenseClient();
++    const col = createReferenceCollection(params.collectionName);
++
++    const results = await col.search(
++      {
++        q: params.query,
++        query_by: params.queryBy as [ReferenceFieldName, ...ReferenceFieldName[]],
++        filter_by: params.filterBy,
++        per_page: params.limit ?? 50,
++      },
++      config,
++    );
++
++    return results.hits?.map((hit) => hit.document) ?? [];
++  } catch (error) {
++    captureException(error, {
++      tags: { function: 'searchTypesense' },
++      extra: { params },
++    });
++    return []; // graceful error
++  }
++}
+diff --git a/app/routes/_references/components/admin/AdminReferencesTab.tsx b/app/routes/_references/components/admin/AdminReferencesTab.tsx
+deleted file mode 100644
+index 4e48f5989..000000000
+--- a/app/routes/_references/components/admin/AdminReferencesTab.tsx
++++ /dev/null
+@@ -1,34 +0,0 @@
+-import { useState } from 'react';
+-
+-import { Box, Flex, SegmentedControl } from '@radix-ui/themes';
+-
+-import ReferenceSearch from './ReferenceSearch';
+-import ReferenceTree from './ReferenceTree';
+-
+-interface AdminReferencesTabProps {
+-  jurisdictionId: number | null;
+-}
+-
+-export default function AdminReferencesTab({ jurisdictionId }: AdminReferencesTabProps) {
+-  const [view, setView] = useState<'tree' | 'search'>('search');
+-
+-  if (!jurisdictionId) {
+-    return <Box>No available jurisdiction data</Box>;
+-  }
+-
+-  return (
+-    <Box>
+-      <Flex mb='4' justify='start'>
+-        <SegmentedControl.Root value={view} onValueChange={(v) => setView(v as 'tree' | 'search')}>
+-          <SegmentedControl.Item value='search'>Search</SegmentedControl.Item>
+-          <SegmentedControl.Item value='tree'>Tree</SegmentedControl.Item>
+-        </SegmentedControl.Root>
+-      </Flex>
+-      {view === 'search' ? (
+-        <ReferenceSearch jurisdictionId={jurisdictionId} />
+-      ) : (
+-        <ReferenceTree jurisdictionId={jurisdictionId} />
+-      )}
+-    </Box>
+-  );
+-}
+diff --git a/app/routes/_references/components/admin/ReferenceSearch.tsx b/app/routes/_references/components/admin/ReferenceSearch.tsx
+deleted file mode 100644
+index 653dfa3a7..000000000
+--- a/app/routes/_references/components/admin/ReferenceSearch.tsx
++++ /dev/null
+@@ -1,90 +0,0 @@
+-/**
+- * Search UI for querying reference nodes.
+- */
+-
+-import { useEffect, useState } from 'react';
+-
+-import { MagnifyingGlassIcon } from '@radix-ui/react-icons';
+-import { Box, Button, Flex, Heading, Select, Text, TextField } from '@radix-ui/themes';
+-import { useFetcher } from '@remix-run/react';
+-
+-import { SearchReferencesResponse } from '../../_api.references/_routes/_searchReferencesRoute';
+-import { getReferenceConfigStrict, ReferenceConfigTab } from '../../config';
+-
+-interface ReferenceSearchProps {
+-  jurisdictionId: number;
+-}
+-
+-export default function ReferenceSearch({ jurisdictionId }: ReferenceSearchProps) {
+-  const config = getReferenceConfigStrict(jurisdictionId);
+-  const fetcher = useFetcher<SearchReferencesResponse>();
+-
+-  // @TODO create "admin" only tabs so we can search for all, even on jurisdictions that don't use the all tab
+-  const [selectedTab, setSelectedTab] = useState<ReferenceConfigTab>(config.tabs[0]);
+-  const selectedTabId = selectedTab.id;
+-
+-  // list references on mount (note: tab changes won't trigger yet)
+-  useEffect(() => {
+-    if (fetcher.state === 'idle' && !fetcher.data) {
+-      fetcher.load(`/references?jurisdictionId=${jurisdictionId}&tabId=${selectedTabId}`);
+-    }
+-  }, [jurisdictionId, fetcher, selectedTabId]);
+-
+-  return (
+-    <Box>
+-      <Box pb='4'>
+-        <Heading as='h3'>Reference Search View</Heading>
+-        <Text color='gray' size='2'>
+-          Search reference nodes using Spice hybrid search across titles (node, parent, root).
+-          Limited jurisdiction support.
+-        </Text>
+-      </Box>
+-      <Box pb='2'>
+-        <Flex align='center' gap='3'>
+-          <Text size='3' weight='medium'>
+-            Tab
+-          </Text>
+-          <Select.Root
+-            value={selectedTabId}
+-            onValueChange={(tabId) => {
+-              const selected = config.tabs.find((t) => t.id === tabId);
+-              if (!selected) throw new Error(`Unknown tabId: ${tabId}`);
+-              setSelectedTab(selected);
+-            }}
+-            size='3'
+-          >
+-            <Select.Trigger placeholder='Select tab' style={{ minWidth: '150px' }} />
+-            <Select.Content>
+-              {config.tabs.map((tab) => (
+-                <Select.Item key={`tab_${tab.id}`} value={tab.id}>
+-                  {tab.label}
+-                </Select.Item>
+-              ))}
+-            </Select.Content>
+-          </Select.Root>
+-        </Flex>
+-      </Box>
+-      <fetcher.Form method='get' action='/references'>
+-        <Flex gap='2' mb='4'>
+-          <TextField.Root
+-            name='q'
+-            placeholder='Search references...'
+-            size='3'
+-            style={{ flex: 1 }}
+-            disabled={fetcher.state === 'loading'}
+-          >
+-            <TextField.Slot>
+-              <MagnifyingGlassIcon height='16' width='16' />
+-            </TextField.Slot>
+-          </TextField.Root>
+-          <Button type='submit' size='3' disabled={fetcher.state === 'loading'}>
+-            {fetcher.state === 'loading' ? 'Searching...' : 'Search'}
+-          </Button>
+-          <input type='hidden' name='jurisdictionId' value={jurisdictionId} />
+-          <input type='hidden' name='tabId' value={selectedTabId} />
+-        </Flex>
+-      </fetcher.Form>
+-      {fetcher.data && <pre>{JSON.stringify(fetcher.data.references, null, 4)}</pre>}
+-    </Box>
+-  );
+-}
+diff --git a/app/routes/_references/components/admin/ReferencesAdminTab.tsx b/app/routes/_references/components/admin/ReferencesAdminTab.tsx
+new file mode 100644
+index 000000000..7baa030f1
+--- /dev/null
++++ b/app/routes/_references/components/admin/ReferencesAdminTab.tsx
+@@ -0,0 +1,69 @@
++import { useState } from 'react';
++
++import { Box, Card, Flex, Select, Text, TextField } from '@radix-ui/themes';
++
++import { RegulationCombobox } from '../../../../components/forum/RegulationCombobox';
++
++import ReferenceTree from './ReferenceTree';
++
++interface ReferencesAdminTabProps {
++  jurisdictionId: number | null;
++}
++
++type RegulationsView = 'picker' | 'tree';
++
++/**
++ * Admin-level viewer to display and assess regulation nodes.
++ */
++export default function ReferencesAdminTab({ jurisdictionId }: ReferencesAdminTabProps) {
++  const [view, setView] = useState<RegulationsView>('picker');
++  const [limit, setLimit] = useState(50);
++  const [selectedRegIds, setSelectedRegIds] = useState<string[]>([]);
++
++  if (!jurisdictionId) {
++    return <Box>No Jurisdiction ID available</Box>;
++  }
++
++  return (
++    <Box>
++      <Flex py='2' align='center' justify='between'>
++        <Text size='4'>Regulations</Text>
++        <Flex align='center' gap='2'>
++          <Flex align='center' gap='2' hidden={view !== 'picker'}>
++            <Text size='1'>Limit</Text>
++            <TextField.Root
++              size='1'
++              type='number'
++              value={limit}
++              onChange={(e) => setLimit(Number(e.target.value))}
++            />
++          </Flex>
++          <Select.Root size='1' value={view} onValueChange={(v) => setView(v as RegulationsView)}>
++            <Select.Trigger>
++              <Text>{view === 'picker' ? 'Picker View' : 'Tree View'}</Text>
++            </Select.Trigger>
++            <Select.Content>
++              <Select.Item value='picker'>Picker View</Select.Item>
++              <Select.Item value='tree'>Tree View</Select.Item>
++            </Select.Content>
++          </Select.Root>
++        </Flex>
++      </Flex>
++      {view === 'tree' ? (
++        <Flex direction='column' gap='4'>
++          <ReferenceTree jurisdictionId={jurisdictionId} />
++        </Flex>
++      ) : (
++        <Card style={{ padding: 0, width: 'fit-content', margin: 'auto' }}>
++          <RegulationCombobox
++            selectedRegulationIds={selectedRegIds}
++            setSelectedRegulationIds={setSelectedRegIds}
++            jurisdictionId={jurisdictionId}
++            placeholder='Search regulations by title or citation'
++            limit={limit}
++          />
++        </Card>
++      )}
++    </Box>
++  );
++}
+diff --git a/app/routes/_references/config/configHelpers.ts b/app/routes/_references/config/configHelpers.ts
+index d2fa080a5..0285776a6 100644
+--- a/app/routes/_references/config/configHelpers.ts
++++ b/app/routes/_references/config/configHelpers.ts
+@@ -1,12 +1,12 @@
+ import { ReferenceConfig, ReferenceConfigTab } from '.';
+ 
+-type PartialTabConfig = Pick<ReferenceConfigTab, 'datasets' | 'rootIds'>;
++type PartialTabConfig = Pick<ReferenceConfigTab, 'rootIds'>;
+ 
+ /**
+  * Helper to return the basic reference node tab configuration
+  */
+ export function defaultConfig(
+-  datasets: string[],
++  dataset: string,
+   tabConfigs: {
+     stateLaws: PartialTabConfig;
+     localCode: PartialTabConfig;
+@@ -14,12 +14,11 @@ export function defaultConfig(
+   },
+ ): ReferenceConfig {
+   return {
+-    datasets,
++    dataset,
+     tabs: [
+       {
+         id: 'all',
+         label: 'All',
+-        datasets,
+         rootIds: null,
+       },
+       {
+@@ -41,18 +40,15 @@ export function defaultConfig(
+   };
+ }
+ 
+-// Commonly reused datasets
++// Commonly reused tab configs for CA state laws
+ export const CA_PLANNING = {
+-  datasets: ['ca_state_planning'],
+   rootIds: ['CA-planning'],
+ };
+ 
+ export const CA_BUILDING = {
+-  datasets: ['ca_state_building'],
+   rootIds: ['CA-building'],
+ };
+ 
+ export const CA = {
+-  datasets: [...CA_PLANNING.datasets, ...CA_BUILDING.datasets],
+   rootIds: [...CA_PLANNING.rootIds, ...CA_BUILDING.rootIds],
+ };
+diff --git a/app/routes/_references/config/datasets.ts b/app/routes/_references/config/datasets.ts
+new file mode 100644
+index 000000000..6677f409a
+--- /dev/null
++++ b/app/routes/_references/config/datasets.ts
+@@ -0,0 +1,10 @@
++/**
++ * Central location for the names of the datasets used by SpiceAI Views and Typesense Collections.
++ */
++export const DATASETS = {
++  sf: 'sf',
++  nyc: 'nyc_view',
++  sonoma: 'sonoma',
++  richmond: 'richmond',
++  elsegundo: 'elsegundo',
++};
+diff --git a/app/routes/_references/config/defs/ca/elSegundo.ts b/app/routes/_references/config/defs/ca/elSegundo.ts
+index aa830adc5..fb821ea80 100644
+--- a/app/routes/_references/config/defs/ca/elSegundo.ts
++++ b/app/routes/_references/config/defs/ca/elSegundo.ts
+@@ -1,17 +1,13 @@
+ import { ReferenceConfig } from '../..';
+ import { CA, defaultConfig } from '../../configHelpers';
++import { DATASETS } from '../../datasets';
+ 
+-export const elSegundoReferences: ReferenceConfig = defaultConfig(
+-  ['ca_elsegundo', ...CA.datasets],
+-  {
+-    stateLaws: CA,
+-    localCode: {
+-      datasets: ['ca_elsegundo'],
+-      rootIds: ['elsegundo-local-code'],
+-    },
+-    docs: {
+-      datasets: ['ca_elsegundo'],
+-      rootIds: ['elsegundo-docs'],
+-    },
++export const elSegundoReferences: ReferenceConfig = defaultConfig(DATASETS.elsegundo, {
++  stateLaws: CA,
++  localCode: {
++    rootIds: ['elsegundo-local-code'],
+   },
+-);
++  docs: {
++    rootIds: ['elsegundo-docs'],
++  },
++});
+diff --git a/app/routes/_references/config/defs/ca/richmond.ts b/app/routes/_references/config/defs/ca/richmond.ts
+index ef32c7115..bc3c3417c 100644
+--- a/app/routes/_references/config/defs/ca/richmond.ts
++++ b/app/routes/_references/config/defs/ca/richmond.ts
+@@ -1,17 +1,13 @@
+ import { ReferenceConfig } from '../..';
+ import { CA_PLANNING, defaultConfig } from '../../configHelpers';
++import { DATASETS } from '../../datasets';
+ 
+-export const richmondReferences: ReferenceConfig = defaultConfig(
+-  ['ca_richmond', ...CA_PLANNING.datasets],
+-  {
+-    stateLaws: CA_PLANNING,
+-    localCode: {
+-      datasets: ['ca_richmond'],
+-      rootIds: ['16579'],
+-    },
+-    docs: {
+-      datasets: ['ca_richmond'],
+-      rootIds: ['richmond-docs'],
+-    },
++export const richmondReferences: ReferenceConfig = defaultConfig(DATASETS.richmond, {
++  stateLaws: CA_PLANNING,
++  localCode: {
++    rootIds: ['16579'],
+   },
+-);
++  docs: {
++    rootIds: ['richmond-docs'],
++  },
++});
+diff --git a/app/routes/_references/config/defs/ca/sf.ts b/app/routes/_references/config/defs/ca/sf.ts
+index 6cfae0837..80e47a48e 100644
+--- a/app/routes/_references/config/defs/ca/sf.ts
++++ b/app/routes/_references/config/defs/ca/sf.ts
+@@ -1,14 +1,13 @@
+ import { ReferenceConfig } from '../..';
+ import { CA_PLANNING, defaultConfig } from '../../configHelpers';
++import { DATASETS } from '../../datasets';
+ 
+-export const sfReferences: ReferenceConfig = defaultConfig(['ca_sf', 'ca_state_planning'], {
++export const sfReferences: ReferenceConfig = defaultConfig(DATASETS.sf, {
+   stateLaws: CA_PLANNING,
+   localCode: {
+-    datasets: ['ca_sf'],
+     rootIds: ['sf-local-code'],
+   },
+   docs: {
+-    datasets: ['ca_sf'],
+     rootIds: ['sf-docs'],
+   },
+ });
+diff --git a/app/routes/_references/config/defs/ca/sonoma.ts b/app/routes/_references/config/defs/ca/sonoma.ts
+index df5f3b8db..83ef7b9c2 100644
+--- a/app/routes/_references/config/defs/ca/sonoma.ts
++++ b/app/routes/_references/config/defs/ca/sonoma.ts
+@@ -1,17 +1,13 @@
+ import { ReferenceConfig } from '../..';
+ import { CA_PLANNING, defaultConfig } from '../../configHelpers';
++import { DATASETS } from '../../datasets';
+ 
+-export const sonomaReferences: ReferenceConfig = defaultConfig(
+-  ['ca_sonoma', ...CA_PLANNING.datasets],
+-  {
+-    stateLaws: CA_PLANNING,
+-    localCode: {
+-      datasets: ['ca_sonoma'],
+-      rootIds: ['16331'],
+-    },
+-    docs: {
+-      datasets: ['ca_sonoma'],
+-      rootIds: ['sonoma-prmd'],
+-    },
++export const sonomaReferences: ReferenceConfig = defaultConfig(DATASETS.sonoma, {
++  stateLaws: CA_PLANNING,
++  localCode: {
++    rootIds: ['16331'],
+   },
+-);
++  docs: {
++    rootIds: ['sonoma-prmd'],
++  },
++});
+diff --git a/app/routes/_references/config/defs/ny/nyc.ts b/app/routes/_references/config/defs/ny/nyc.ts
+index 855fd9055..c7667f6f4 100644
+--- a/app/routes/_references/config/defs/ny/nyc.ts
++++ b/app/routes/_references/config/defs/ny/nyc.ts
+@@ -1,67 +1,58 @@
+ import { ReferenceConfig } from '../..';
++import { DATASETS } from '../../datasets';
+ 
+ export const nycReferences: ReferenceConfig = {
+-  datasets: ['nyc'],
++  dataset: DATASETS.nyc,
+   tabs: [
+     {
+       id: 'all',
+       label: 'All',
+-      datasets: ['nyc'],
+       rootIds: null,
+     },
+     {
+       id: '2022-building-code',
+       label: '2022 Building Code',
+-      datasets: ['nyc'],
+       rootIds: ['72479326'],
+     },
+     {
+       id: '1968-building-code',
+       label: '1968 Building Code',
+-      datasets: ['nyc'],
+       rootIds: ['nyc-1968-building-codes'],
+     },
+     {
+       id: '1938-building-code',
+       label: '1938 Building Code',
+-      datasets: ['nyc'],
+       rootIds: ['building-code-1938'],
+     },
+     {
+       id: 'multi-dwelling-law',
+       label: 'Multi-Dwelling Law',
+-      datasets: ['nyc'],
+       rootIds: ['mdw-main'],
+     },
+     {
+       id: 'zoning-resolution',
+       label: 'Zoning Resolution',
+-      datasets: ['nyc'],
+       rootIds: ['nyc-zoning-laws'],
+       separator: 'bottom',
+     },
+     {
+       id: 'personnel-rules',
+       label: 'Personnel rules & regulations',
+-      datasets: ['nyc'],
+       rootIds: ['0-0-0-134516'],
+     },
+     {
+       id: 'employee-handbook',
+       label: 'Employee handbook',
+-      datasets: ['nyc'],
+       rootIds: ['employee-handbook-grouping'],
+     },
+     {
+       id: 'guides',
+       label: 'Guides',
+-      datasets: ['nyc'],
+       rootIds: ['nyc-guides'],
+     },
+     {
+       id: 'personnel-service-bulletins',
+       label: 'Personal Service Bulletins',
+-      datasets: ['nyc'],
+       rootIds: ['nyc-personnel-bulletins'],
+     },
+   ],
+diff --git a/app/routes/_references/config/index.ts b/app/routes/_references/config/index.ts
+index 9692bab78..29852f994 100644
+--- a/app/routes/_references/config/index.ts
++++ b/app/routes/_references/config/index.ts
+@@ -1,5 +1,5 @@
+ /**
+- * Mapping of jurisdiction ID to Spice Reference table
++ * Mapping of jurisdiction ID to Reference datasets.
+  */
+ import { JURISDICTION_IDS } from '../../../../data/place';
+ 
+@@ -12,24 +12,16 @@ import { nycReferences } from './defs/ny/nyc';
+ export interface ReferenceConfigTab {
+   id: string; // tab ID for clientside checking
+   label: string;
+-  datasets: string[]; // spice dataset table
+   rootIds: string[] | null; // optional root to filter within a dataset
+   separator?: 'top' | 'bottom'; // optional grey divider
+ }
+ 
+ export interface ReferenceConfig {
+-  // all the datasets for a jurisdiction
+-  // we can probably remove this and just use the tab datasets
+-  datasets: string[];
++  dataset: string; // spice view name and typesense collection name
+   tabs: ReferenceConfigTab[];
+ }
+ 
+-export interface ReferenceConfigStrict {
+-  datasets: [string, ...string[]]; // non-empty array
+-  tabs: ReferenceConfigTab[];
+-}
+-
+-// Map from jurisdiction to Spice references table and tabs
++// Map jurisdiction ID to Reference configuration
+ const JURISDICTION_REFERENCES: Record<number, ReferenceConfig> = {
+   [JURISDICTION_IDS.CITY_OF_NEW_YORK]: nycReferences,
+   [JURISDICTION_IDS.CITY_OF_SAN_FRANCISCO]: sfReferences,
+@@ -65,23 +57,20 @@ export function getReferenceConfig(
+  * Strict helper that guarantees:
+  * - jurisdictionId is a valid number (throws otherwise)
+  * - config exists (throws otherwise)
+- * - datasets array is non-empty (type guarantee via ReferenceConfigStrict)
+  *
+  * Usage:
+  * ```ts
+  * const config = getReferenceConfigStrict(jurisdictionId);
+- * // config.datasets is non-empty
++ * // Always returns a valid ReferenceConfig or throws
+  * ```
+  */
+-export function getReferenceConfigStrict(jurisdictionId: number): ReferenceConfigStrict;
++export function getReferenceConfigStrict(jurisdictionId: number): ReferenceConfig;
+ export function getReferenceConfigStrict(jurisdictionId: null): never;
+-export function getReferenceConfigStrict(jurisdictionId: number | null): ReferenceConfigStrict {
++export function getReferenceConfigStrict(jurisdictionId: number | null): ReferenceConfig {
+   if (!jurisdictionId) throw new Error('No jurisdiction ID');
+ 
+   const refConfig = JURISDICTION_REFERENCES[jurisdictionId];
+   if (!refConfig) throw new Error(`Unsupported jurisdiction ID: ${jurisdictionId}`);
+-  if (!refConfig.datasets.length)
+-    throw new Error(`No datasets for jurisdiction ID: ${jurisdictionId}`);
+ 
+-  return refConfig as ReferenceConfigStrict;
++  return refConfig;
+ }
+diff --git a/app/routes/_references/readme.md b/app/routes/_references/readme.md
+index 5cc2dfc92..fb12efc84 100644
+--- a/app/routes/_references/readme.md
++++ b/app/routes/_references/readme.md
+@@ -1,38 +1,49 @@
+ This is a work-in-progress document and feature, but gives a quick high-level of the important elements of the reference system.
+ 
++## Architecture Overview
++
++The reference system uses two data layers:
++
++1. **Spice** - Primary data source for ingestion and organization
++   - Ingests and organizes raw reference node data
++   - Creates jurisdiction-segmented views with root and parent title data
++   - Used for point queries (find by ID, batch find, children queries)
++
++2. **Typesense** - Fast full-text search layer
++   - Provides fast full-text search across reference documents
++   - Searches across title, shortTitle, and parentTitle fields
++   - Filters by nodeType and rootIds based on tab configuration
++
+ ## API
+ 
+ Endpoints:
+-/references - search
+-/references/$id - find one
+-/references/batch?ids - find multiple by id
+-/references/children/$parentId - find children for a given node. mostly debug
++- `/references` - search (with Typesense) or list (filtered)
++- `/references/$id` - find one (with Spice)
++- `/references/batch?ids` - find multiple by id (with Spice)
++- `/references/children/$parentId` - find children for a given node, mostly debug (with Spice)
+ 
+ ### Search
+ 
+-This endpoints is search by tab context
+-General search isn't supported, it's scaffolded by the tab structure; it could perhaps be an admin endpoint but it seems unnecessary at this point.
++The search endpoint is scoped by tab context. General search isn't supported; it's scaffolded by the tab structure.
+ 
+ #### Tabs
+ 
+-Tabs are configured according to the query types provided by spice
++Tabs are configured according to the available datasets and their root nodes:
+ 
+-1. Non-search queries list data. This requires sql.
+-2. Search queries use the .search utility
++1. **List queries** (no search param) - Returns filtered documents via Typesense wildcard search
++2. **Search queries** (with search param) - Full-text search via Typesense
+ 
+ ##### Scoping data per Jurisdiction
+ 
+-These queries need to be bounded by the jurisdiction's available dataset
+-This was formerly achieved with Views that merge separate datasets into a single table, but that's not supported by Spice search anymore (vector search doesn't work with views currently)
+-We can achieve the same affect by ensuring we union all datasets within the query directly for list requests (#1), and the search API provides a `datasets` param to scope the search query (#2).
++Queries are bounded by the jurisdiction's available dataset and configured tabs. Each tab can optionally filter to specific rootIds within a dataset.
+ 
+-This scoping is achieved by scoping the search endpoint to the selected tab:
++Scoping is achieved by specifying the tabId:
+ 
+ ```
+-/references?tabId=<tab-id>&search=<optional-search-query>
++/references?tabId=<tab-id>&q=<optional-search-query>
+ ```
+ 
+-The only admin functionality currently supported is the ability to specify the jurisdictionId. By default, if none is provided the users authenticated jurisdiction ID will be used.
++The only admin functionality currently supported is the ability to specify the jurisdictionId. By default, if none is provided the user's authenticated jurisdiction ID will be used.
+ 
+ ##### Standard Configuration
+ 
+@@ -45,27 +56,60 @@ The majority of tabs follow the same structure:
+ 
+ Thus, we provide a helper to setup the default configuration as guidelines. However, the tab configuration is completely customizeable.
+ 
+-##### Relationship between tab and underlying data / dataset organization (Spice Notes)
++##### Relationship between tab and underlying data / dataset organization
++
++Each jurisdiction configuration specifies:
++- **dataset**: The name used for both the Spice view and Typesense collection
++- **tabs**: Array of tab configurations, each with optional rootIds to filter within the dataset
+ 
+-Each configuration needs a dataset (or multiple) at minimum. Some datasets may contain multiple groups of data. If a given tab needs only a subset of data, the configuration can add rootId's to further filter what buckets of data to look for.
+ The organization of the underlying data depends on a variety of factors (including scrape style or consistency), so there is a loose relationship but no concrete patterns.
+ 
+-**Warning** Spice doesn't do well with casing. Naming (of fields and datasets) are adjusted to accomodate (e.g. the duplicated `root_id` field to filter queries work, but the app prefers `rootId`)
++**Data Pipeline:**
++1. Raw reference data is ingested into Spice datasets
++2. Spice creates jurisdiction-segmented views with enriched metadata (root/parent titles)
++3. Data is indexed into Typesense collections (matching the dataset name) for fast search
++4. Queries use Typesense for search/list operations and Spice for point queries
++
++**Notes:**
++- Spice doesn't handle casing well. Field names use camelCase (e.g., `rootId`) but may have snake_case alternatives for compatibility
++- To update the underlying data, go to the [Atlas Repo](https://github.com/Infilla/atlas). It can be run locally if needed, which would require setting the `SPICE_REFERENCE_*` fields to point locally
++- Typesense collections are synced from Spice data and should mirror the Spice view structure
++
++##### Example Configuration: San Francisco
++
++```typescript
++{
++  dataset: 'sf', // Used for both Spice view and Typesense collection
++  tabs: [
++    { id: 'all', label: 'All', rootIds: null }, // All data in 'sf' collection
++    { id: 'state-laws', label: 'State Laws', rootIds: ['ca-planning'] },
++    { id: 'local-code', label: 'Local Code', rootIds: ['sf-local-code'] },
++    { id: 'docs', label: 'Documents', rootIds: ['sf-docs'] }
++  ]
++}
++```
++
++**How it works:**
++- The `sf` dataset/collection contains all SF reference data (local code, docs, and state planning laws)
++- Each tab filters by `rootIds` to show only relevant documents
++- "All" tab shows everything (null rootIds = no filter)
++- Search queries filter by: `nodeType:!=grouping && (rootId:=sf-local-code || rootId:=sf-docs)` etc.
+ 
+-To update the underlying data, you should go to the [Atlas Repo](https://github.com/Infilla/atlas) to make changes to the data. It can be run locally if needed, which would require setting the SPICE*REFERENCE*\* fields to point locally.
++### Frontend Access
+ 
+-##### Example Configuration: El Segundo
++These are resource-only APIs designed for dynamic use (e.g., when a reference picker is opened).
+ 
+-- Required datasets are el segundo local code, el segundo documents, state planning code, and state building code
+-- This is organized into three datasets in spice: ca_elsegundo, ca_state_planning, ca_state_building
+-- Within ca_elsegundo contains two "roots" of data: el-segundo-local-code and el-segundo-docs
+-- The tabs will be configured as the following:
+-  - All: the entirety of all three datasets
+-  - State Laws: the entirety of ca_state_planning and ca_state_building
+-  - Local Code: Only the el-segundo-local-code root within the ca_elsegundo dataset
+-  - Documents: Only the el-segundo-docs root within the ca_elsegundo dataset
++**Error Handling:**
++All endpoints return status 200 with a response structure that includes:
++- `success: boolean` - Indicates if the request succeeded
++- `error?: string` - Optional error message
++- Data fields (e.g., `references`, `reference`)
+ 
+-### Frontend Access
++This prevents client-side crashes and provides graceful degradation. The endpoints use try-catch wrappers to ensure they never throw unhandled errors.
+ 
+-These are purely resource-only API's at the moment. They should not be fused with fetcher.loader because the requests are truly dynamic (only needed when the picker is open) and thus don't fit with the fetcher model properly.
+-`fetch` should be used instead of `fetcher` on these results, but that is not yet demonstrated. Each API arbitrarily returns 200 with a response structure aimed at keeping the app from crashing, but this may not be necessary if we only use fetch.
++**Query Parameters:**
++- `/references?tabId=<tab-id>&q=<search-query>&limit=<number>&jurisdictionId=<id>`
++  - `tabId` (required) - Tab configuration to use for filtering
++  - `q` (optional) - Search query string
++  - `limit` (optional, default: 10) - Maximum results to return
++  - `jurisdictionId` (optional, admin only) - Override jurisdiction
+diff --git a/app/routes/_references/referenceType.ts b/app/routes/_references/referenceType.ts
+index d14110a04..afd2333c4 100644
+--- a/app/routes/_references/referenceType.ts
++++ b/app/routes/_references/referenceType.ts
+@@ -10,10 +10,10 @@ export const ReferenceSchema = Type.Object({
+   shortTitle: Type.String(),
+   nodeType: Type.String(),
+   url: Type.String(),
+-  parentId: Type.Union([Type.String(), Type.Null()]),
+   parentTitle: Type.String(),
+-  rootId: Type.String(),
+   rootShortTitle: Type.String(),
++  rootId: Type.String(),
++  parentId: Type.Union([Type.String(), Type.Null()]),
+ });
+ 
+ export type Reference = Static<typeof ReferenceSchema>;
+diff --git a/app/services/typesense.server.ts b/app/services/typesense.server.ts
+new file mode 100644
+index 000000000..d021f0814
+--- /dev/null
++++ b/app/services/typesense.server.ts
+@@ -0,0 +1,29 @@
++import { type Configuration, configure } from 'typesense-ts';
++
++import { asyncSingleton } from '../utils/singleton.server';
++
++export const getTypesenseClient = () => {
++  const { TYPESENSE_HOST, TYPESENSE_API_KEY } = process.env;
++
++  if (!TYPESENSE_HOST) {
++    throw new Error('No TYPESENSE_HOST specified');
++  }
++  if (!TYPESENSE_API_KEY) {
++    throw new Error('No TYPESENSE_API_KEY specified');
++  }
++
++  return asyncSingleton('typesense', async () => {
++    const config: Configuration = configure({
++      nodes: [
++        {
++          host: TYPESENSE_HOST,
++          port: 443,
++          protocol: 'https',
++        },
++      ],
++      apiKey: TYPESENSE_API_KEY,
++    });
++
++    return config;
++  });
++};
+diff --git a/deployment/lib/constructs/InfillaApplication.ts b/deployment/lib/constructs/InfillaApplication.ts
+index e06e1d081..fed9f4fca 100644
+--- a/deployment/lib/constructs/InfillaApplication.ts
++++ b/deployment/lib/constructs/InfillaApplication.ts
+@@ -143,6 +143,8 @@ export class InfillaApplication extends Construct {
+         ...requireEnv('SPICE_FORUM_API_KEY'),
+         ...requireEnv('SPICE_REFERENCES_HTTP_URL'),
+         ...requireEnv('SPICE_REFERENCES_FLIGHT_URL'),
++        ...requireEnv('TYPESENSE_HOST'),
++        ...requireEnv('TYPESENSE_API_KEY'),
+       },
+       logGroupName: REMIX_SERVICE_LOG_GROUP_NAME,
+       securityGroups: [this.appSecurityGroup],
+diff --git a/package-lock.json b/package-lock.json
+index 4622e4ca8..7e114228b 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -117,6 +117,7 @@
+         "source-map-support": "^0.5.21",
+         "tippy.js": "^6.3.7",
+         "tsc-files": "^1.1.4",
++        "typesense-ts": "^0.2.5",
+         "use-debounce": "^10.0.4",
+         "use-immer": "^0.11.0",
+         "winston": "^3.17.0",
+@@ -42882,6 +42883,11 @@
+         }
+       }
+     },
++    "node_modules/typesense-ts": {
++      "version": "0.2.5",
++      "resolved": "https://registry.npmjs.org/typesense-ts/-/typesense-ts-0.2.5.tgz",
++      "integrity": "sha512-5IfWDNhF3b4bc8GEbEf7ZEbGESY5SBKLHJD/NbGjWIKdjdu4Cs4PZtK+TnIKuEozmCGU68eiykTYnXLzPoMjrA=="
++    },
+     "node_modules/typical": {
+       "version": "4.0.0",
+       "resolved": "https://registry.npmjs.org/typical/-/typical-4.0.0.tgz",
+diff --git a/package.json b/package.json
+index 02e8fccfb..7c8e40bba 100644
+--- a/package.json
++++ b/package.json
+@@ -231,6 +231,7 @@
+     "source-map-support": "^0.5.21",
+     "tippy.js": "^6.3.7",
+     "tsc-files": "^1.1.4",
++    "typesense-ts": "^0.2.5",
+     "use-debounce": "^10.0.4",
+     "use-immer": "^0.11.0",
+     "winston": "^3.17.0",
+diff --git a/scripts/misc/typesense-test.ts b/scripts/misc/typesense-test.ts
+new file mode 100644
+index 000000000..da8f27d4a
+--- /dev/null
++++ b/scripts/misc/typesense-test.ts
+@@ -0,0 +1,77 @@
++/**
++ * Test script to demonstrate connecting to Typesense for reference searching.
++ * @USAGE
++ * npx tsx --env-file=.env.development ./scripts/misc/typesense-test.ts
++ */
++
++import { collection, setDefaultConfiguration } from 'typesense-ts';
++
++import { ReferencedRegulationNode } from '../../app/utils/regulation';
++
++const { TYPESENSE_HOST, TYPESENSE_API_KEY } = process.env;
++if (!TYPESENSE_HOST) {
++  throw new Error('No TYPESENSE_HOST');
++}
++if (!TYPESENSE_API_KEY) {
++  throw new Error('No TYPESENSE_API_KEY');
++}
++
++// Define the sf collection schema (minimal - just the fields we're querying)
++const sfCollection = collection({
++  name: 'sf',
++  fields: [
++    { name: 'title', type: 'string' },
++    { name: 'shortTitle', type: 'string' },
++    { name: 'parentTitle', type: 'string' },
++    { name: 'url', type: 'string' },
++  ],
++});
++
++async function testTypesenseQuery() {
++  setDefaultConfiguration({
++    nodes: [
++      {
++        host: TYPESENSE_HOST as string,
++        port: 443,
++        protocol: 'https',
++      },
++    ],
++    apiKey: TYPESENSE_API_KEY as string,
++  });
++
++  try {
++    console.log("Searching for 'SB 9' in the sf collection...\n");
++
++    const searchResults = await sfCollection.search({
++      q: 'SB 9',
++      query_by: ['title', 'shortTitle', 'parentTitle'],
++    });
++
++    console.log(`Found ${searchResults.found} results:\n`);
++
++    searchResults.hits?.forEach((hit, index) => {
++      const doc = hit.document as unknown as ReferencedRegulationNode;
++      console.log(`${index + 1}. ${doc.title || doc.shortTitle}`);
++      if (doc.parentTitle) {
++        console.log(`   Parent: ${doc.parentTitle}`);
++      }
++      if (doc.url) {
++        console.log(`   URL: ${doc.url}`);
++      }
++      console.log();
++    });
++  } catch (error) {
++    console.error('Error querying Typesense:');
++    console.error(error);
++    if (error instanceof Error) {
++      console.error('\nError details:', {
++        name: error.name,
++        message: error.message,
++        cause: error.cause,
++      });
++    }
++    process.exit(1);
++  }
++}
++
++testTypesenseQuery();
+diff --git a/scripts/sync-secrets.sh b/scripts/sync-secrets.sh
+new file mode 100755
+index 000000000..7f248f524
+--- /dev/null
++++ b/scripts/sync-secrets.sh
+@@ -0,0 +1,96 @@
++#!/bin/bash
++
++# Usage: 
++# `./scripts/sync-scripts` -> update all environments
++# `./scripts/sync-scripts env1 env2` -> update variable number of environments (matching name in .env.<env-to-update>)
++
++set -e
++
++# Color output
++RED='\033[0;31m'
++GREEN='\033[0;32m'
++YELLOW='\033[1;33m'
++NC='\033[0m' # No Color
++
++# Get environment config (secret_id:env_file:profile)
++get_env_config() {
++  case "$1" in
++    testing)
++      echo "dev/infilla-app/env-testing:.env.testing:development"
++      ;;
++    development)
++      echo "dev/infilla-app/env-development:.env.development:development"
++      ;;
++    staging)
++      echo "dev/infilla-app/env-staging:.env.staging:development"
++      ;;
++    production)
++      echo "prod/infilla-app/env-production:.env.production:production"
++      ;;
++    *)
++      echo ""
++      ;;
++  esac
++}
++
++ALL_ENVS=("testing" "development" "staging" "production")
++
++# Parse arguments
++SELECTED_ENVS=()
++if [ $# -eq 0 ]; then
++  SELECTED_ENVS=("${ALL_ENVS[@]}")
++else
++  for arg in "$@"; do
++    if [ -z "$(get_env_config "$arg")" ]; then
++      echo -e "${RED}Error: Invalid environment '${arg}'${NC}"
++      echo "Valid environments: ${ALL_ENVS[*]}"
++      exit 1
++    fi
++    SELECTED_ENVS+=("$arg")
++  done
++fi
++
++# Display confirmation
++echo -e "${YELLOW}=== Sync Secrets to AWS ===${NC}\n"
++if [ ${#SELECTED_ENVS[@]} -eq ${#ALL_ENVS[@]} ]; then
++  echo "You are about to sync ALL environments:"
++else
++  echo "You are about to sync the following environment(s):"
++fi
++
++for env in "${SELECTED_ENVS[@]}"; do
++  IFS=':' read -r secret_id env_file profile <<< "$(get_env_config "$env")"
++  echo -e "  ${GREEN}•${NC} $env → $secret_id (from $env_file)"
++done
++
++echo ""
++read -p "Continue? (y/N): " -n 1 -r
++echo ""
++if [[ ! $REPLY =~ ^[Yy]$ ]]; then
++  echo -e "${RED}Aborted.${NC}"
++  exit 1
++fi
++
++# Sync secrets
++echo -e "\n${YELLOW}Syncing secrets...${NC}\n"
++for env in "${SELECTED_ENVS[@]}"; do
++  IFS=':' read -r secret_id env_file profile <<< "$(get_env_config "$env")"
++
++  if [ ! -f "$env_file" ]; then
++    echo -e "${RED}✗ $env: File '$env_file' not found${NC}"
++    continue
++  fi
++
++  echo -e "Syncing ${GREEN}$env${NC} (secret: $secret_id, profile: $profile)..."
++  if ! error_output=$(aws secretsmanager put-secret-value \
++    --secret-id "$secret_id" \
++    --secret-string "$(cat "$env_file")" \
++    --profile "$profile" 2>&1); then
++    echo -e "${RED}✗ $env failed to sync${NC}"
++    echo "$error_output"
++  else
++    echo -e "${GREEN}✓ $env synced successfully${NC}"
++  fi
++done
++
++echo -e "\n${GREEN}Done!${NC}"
