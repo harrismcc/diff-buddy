@@ -13,5 +13,9 @@ function BlogPage() {
 		},
 	});
 
-	return <MarkdownViewer content={data.content} />;
+	return (
+		<div className="container mx-auto px-4 py-8">
+			<MarkdownViewer content={data.content} />
+		</div>
+	);
 }

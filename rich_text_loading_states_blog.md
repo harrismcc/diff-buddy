@@ -1,10 +1,10 @@
-# Adding Loading States to Rich Text Suggestions
+# Improving Rich Text Editor Suggestions: Adding Loading States and Fetch Cancellation
 
-This PR enhances the rich text editor's suggestion system with proper loading state handling, request cancellation, and an event-driven architecture. When users type `@` or `#` to trigger suggestions, they now see skeleton loaders while data is being fetched, providing better feedback for slower network conditions.
+This PR enhances the rich text editor's mention and reference suggestion system by adding visual loading indicators and properly handling asynchronous fetch cancellation. Let's break down the changes.
 
 ## Adding AbortSignal Support to Fetch Functions
 
-The first step is enabling request cancellation at the API layer. Both suggestion fetching functions now accept an optional `AbortSignal` parameter:
+The foundation of this improvement is adding the ability to cancel in-flight requests when a user types a new query. The suggestion service functions now accept an optional `AbortSignal` parameter and pass it to the fetch calls.
 
 ```diff
 diff --git a/app/services/suggestion.client.ts b/app/services/suggestion.client.ts
@@ -41,11 +41,11 @@ index b48081f28..cafa3ee69 100644
    const data = Value.Decode(
 ```
 
-This allows the suggestion system to cancel in-flight requests when the user types a new query before the previous one completes.
+Both `fetchSuggestions` and `fetchReferences` now accept an optional `AbortSignal` parameter, allowing the editor to cancel these requests when needed.
 
-## Passing AbortSignal Through the Suggestion Pipeline
+## Enabling Loading State in the Editor
 
-Next, the RichTextEditor component passes the abort signal through to the fetch functions:
+The suggestion options configuration now passes the `AbortSignal` to these fetch functions and enables a loading state flag for the reference suggestions.
 
 ```diff
 diff --git a/app/components/ui/RichTextEditor/index.tsx b/app/components/ui/RichTextEditor/index.tsx
@@ -80,11 +80,11 @@ index bfca0cc6c..7f335e9d2 100644
          ],
 ```
 
-Both the `@mentions` and `#references` configurations now pass the signal along, and the hash suggestion enables the new `enableLoadingState` feature.
+Notice that the `#` (reference) suggestions enable the loading state with `enableLoadingState: true`, while `@` (mention) suggestions do not. This gives flexibility to enable the feature per suggestion type.
 
-## Updating the Suggestion List Component
+## Adding Loading State UI Component
 
-The RichTextSuggestionList component now accepts and displays loading state:
+The suggestion list component now imports the `Skeleton` component and accepts an optional `isLoading` prop to display placeholder items while data is being fetched.
 
 ```diff
 diff --git a/app/components/ui/RichTextSuggestionList.tsx b/app/components/ui/RichTextSuggestionList.tsx
@@ -135,18 +135,18 @@ index 40aac7a6e..c17cc20ef 100644
                  className='rt-BaseMenuItem'
 ```
 
-When loading, three skeleton placeholder items appear instead of actual suggestions, giving users visual feedback that data is being fetched.
+The component now renders three skeleton placeholder items when `isLoading` is true, giving users visual feedback that suggestions are being fetched.
 
-## Implementing the Event Bus Architecture
+## Building an Event Bus for State Coordination
 
-The core logic lives in `richTextSuggestionOptions.ts`. This is where an event bus pattern decouples the data fetching logic from the UI rendering:
+The core of this improvement is a new event bus system that decouples the data fetching logic from the UI rendering lifecycle. This allows the async `items` function to communicate loading state changes to the Tippy popup renderer.
 
 ```diff
 diff --git a/app/components/ui/richTextSuggestionOptions.ts b/app/components/ui/richTextSuggestionOptions.ts
 index 0fd06dd2d..4f60cf74b 100644
 --- a/app/components/ui/richTextSuggestionOptions.ts
 +++ b/app/components/ui/richTextSuggestionOptions.ts
-@@ -33,45 +33,222 @@ const DOM_RECT_FALLBACK: DOMRect = {
+@@ -33,6 +33,39 @@ const DOM_RECT_FALLBACK: DOMRect = {
    },
  };
  
@@ -182,16 +182,21 @@ index 0fd06dd2d..4f60cf74b 100644
 +    this.listeners = [];
 +  }
 +}
++
 ```
 
-An event bus enables the async items function to communicate loading state to the render lifecycle without direct coupling. Three event types coordinate the flow: `LOADING_STARTED` signals that data fetching has begun, `LOADING_COMPLETED` indicates results are ready, and `FETCH_ABORTED` notifies that a request was cancelled.
+The `SuggestionEventBus` is a simple pub-sub implementation that emits three types of events: `LOADING_STARTED`, `LOADING_COMPLETED`, and `FETCH_ABORTED`. This enables communication between the fetch logic and the UI rendering layer.
 
-### Enhanced Items Function with Request Cancellation
+## Implementing Smart Fetch Management with AbortController
+
+The new `items` wrapper function creates an `AbortController` for each query, aborts the previous request if one is still pending, and emits events to coordinate the UI state.
 
 ```diff
- export const richTextSuggestionOptions = ({
-   items,
-+  enableLoadingState = false,
+diff --git a/app/components/ui/richTextSuggestionOptions.ts b/app/components/ui/richTextSuggestionOptions.ts
+index 0fd06dd2d..4f60cf74b 100644
+--- a/app/components/ui/richTextSuggestionOptions.ts
++++ b/app/components/ui/richTextSuggestionOptions.ts
+@@ -74,7 +74,59 @@ export const richTextSuggestionOptions = ({
  }: {
 -  items: ({ query }: { query: string }) => Promise<MentionSuggestion[] | Suggestion[]>;
 +  items: ({
@@ -208,7 +213,7 @@ An event bus enables the async items function to communicate loading state to th
 +
 +  // Track current abort controller for cleanup
 +  let currentAbortController: AbortController | null = null;
- 
++
    return {
 -    items,
 +    items: async ({ query }: { query: string }) => {
@@ -248,11 +253,23 @@ An event bus enables the async items function to communicate loading state to th
 +    },
 ```
 
-The enhanced items function now manages an `AbortController` to cancel previous requests when new queries arrive. It emits events through the bus at key moments: when loading starts, when it completes, or when a fetch is aborted.
+This wrapper ensures that:
+1. Previous fetches are cancelled when a new query arrives
+2. Loading state events are emitted only if `enableLoadingState` is true
+3. Aborted requests are handled gracefully and return an empty array
+4. Only completed requests update the UI
 
-### Render Lifecycle with Event Subscription
+## Connecting Events to the Render Lifecycle
+
+The render lifecycle now subscribes to the event bus and updates the component's loading state accordingly. Here's the event subscription logic:
 
 ```diff
+diff --git a/app/components/ui/richTextSuggestionOptions.ts b/app/components/ui/richTextSuggestionOptions.ts
+index 0fd06dd2d..4f60cf74b 100644
+--- a/app/components/ui/richTextSuggestionOptions.ts
++++ b/app/components/ui/richTextSuggestionOptions.ts
+@@ -127,45 +127,95 @@ export const richTextSuggestionOptions = ({
+ 
      render: () => {
        let component: ReactRenderer<RichTextSuggestionListRef> | undefined;
        let popup: TippyInstance | undefined;
@@ -316,11 +333,19 @@ The enhanced items function now manages an `AbortController` to cancel previous 
 +      };
 ```
 
-The render function subscribes to the event bus. When `LOADING_STARTED` fires, it immediately updates the component to show skeleton loaders and ensures the popup is visible. Helper functions clean up the popup creation logic to reduce duplication.
+The code tracks loading state and emits UI updates via the event bus subscription. When `LOADING_STARTED` fires, it immediately shows the skeleton placeholders. When `LOADING_COMPLETED` fires, it clears the loading flag.
 
-### Updated Lifecycle Hooks
+## Handling Popup Recreation and Visibility
+
+The `onStart` and `onUpdate` callbacks now handle edge cases where the popup might be destroyed and need recreation:
 
 ```diff
+diff --git a/app/components/ui/richTextSuggestionOptions.ts b/app/components/ui/richTextSuggestionOptions.ts
+index 0fd06dd2d..4f60cf74b 100644
+--- a/app/components/ui/richTextSuggestionOptions.ts
++++ b/app/components/ui/richTextSuggestionOptions.ts
+@@ -198,18 +198,46 @@ export const richTextSuggestionOptions = ({
+ 
        return {
          onStart: (props) => {
 +          // onStart fires when # is typed, no query yet so no loading
@@ -330,12 +355,21 @@ The render function subscribes to the event bus. When `LOADING_STARTED` fires, i
              editor: props.editor,
            });
  
-+          // Subscribe to events from the items function
-+          unsubscribe = subscribeToEvents();
- 
 -          if (!props.clientRect) {
 -            return;
 -          }
++          // Subscribe to events from the items function
++          unsubscribe = subscribeToEvents();
+ 
+-          popup = tippy('body', {
+-            getReferenceClientRect: () => props.clientRect?.() ?? DOM_RECT_FALLBACK,
+-            appendTo: () => document.body,
+-            content: component.element,
+-            showOnCreate: true,
+-            interactive: true,
+-            trigger: 'manual',
+-            placement: 'bottom-start',
+-          })[0];
 +          // Create popup
 +          popup = createPopup(component.element as HTMLElement, props.clientRect ?? undefined);
          },
@@ -375,7 +409,7 @@ The render function subscribes to the event bus. When `LOADING_STARTED` fires, i
  
            if (!props.clientRect) {
              return;
-@@ -80,6 +257,11 @@ export const richTextSuggestionOptions = ({
+@@ -218,6 +246,11 @@ export const richTextSuggestionOptions = ({
            popup?.setProps({
              getReferenceClientRect: () => props.clientRect?.() ?? DOM_RECT_FALLBACK,
            });
@@ -385,22 +419,20 @@ The render function subscribes to the event bus. When `LOADING_STARTED` fires, i
 +            popup.show();
 +          }
          },
- 
-         onKeyDown(props) {
-@@ -89,6 +271,12 @@ export const richTextSuggestionOptions = ({
-             return true;
-           }
- 
-+          // If popup exists but is hidden and we're typing, show it
-+          // The loading state will be handled by the event bus subscription
-+          if (popup && !popup.state.isVisible && enableLoadingState) {
-+            popup.show();
-+          }
-+
-           if (!component?.ref) {
-             return false;
-           }
-@@ -97,9 +285,21 @@ export const richTextSuggestionOptions = ({
+```
+
+The `onUpdate` callback now intelligently handles popup recreation, determines whether to show a loading state based on pending fetches, and ensures the popup is visible when items arrive.
+
+## Proper Cleanup on Exit
+
+Finally, the `onExit` callback now properly cleans up all resources to prevent memory leaks:
+
+```diff
+diff --git a/app/components/ui/richTextSuggestionOptions.ts b/app/components/ui/richTextSuggestionOptions.ts
+index 0fd06dd2d..4f60cf74b 100644
+--- a/app/components/ui/richTextSuggestionOptions.ts
++++ b/app/components/ui/richTextSuggestionOptions.ts
+@@ -273,10 +289,26 @@ export const richTextSuggestionOptions = ({
          },
  
          onExit() {
@@ -422,10 +454,31 @@ The render function subscribes to the event bus. When `LOADING_STARTED` fires, i
            // Remove references to the old popup and component upon destruction/exit.
            // (This should prevent redundant calls to `popup.destroy()`, which Tippy
            // warns in the console is a sign of a memory leak, as the `suggestion`
+@@ -284,6 +316,7 @@ export const richTextSuggestionOptions = ({
+           // a user chooses an option, *and* when the editor itself is destroyed.)
+           popup = undefined;
+           component = undefined;
++          unsubscribe = undefined;
+         },
+       };
+     },
 ```
 
-The lifecycle hooks are enhanced with robust cleanup logic. `onStart` subscribes to the event bus. `onUpdate` handles popup recreation if it was destroyed. `onKeyDown` ensures the popup shows when typing. Most importantly, `onExit` properly cleans up all resources: event subscriptions, abort controllers, and event bus listeners, preventing memory leaks.
+The cleanup process now:
+1. Unsubscribes from event bus events
+2. Destroys the popup and component
+3. Aborts any pending fetch requests
+4. Clears all event listeners
+5. Nulls out all references
 
 ## Summary
 
-This PR introduces a sophisticated loading state system for rich text suggestions using an event bus pattern. Users now see skeleton loaders while suggestions load, and the system efficiently cancels previous requests when new queries arrive. The architecture decouples data fetching from UI rendering, making the code more maintainable and testable.
+This PR adds a sophisticated loading state system to the rich text editor's suggestion popups by:
+
+- **Enabling fetch cancellation** via `AbortSignal` in the service layer
+- **Creating an event bus** to decouple data fetching from UI rendering
+- **Adding visual feedback** with skeleton loaders while suggestions load
+- **Managing popup lifecycle** intelligently to handle edge cases
+- **Implementing thorough cleanup** to prevent memory leaks
+
+The architecture ensures smooth UX when users are rapidly typing and searching for suggestions, while maintaining clean separation of concerns between data fetching and UI rendering.
