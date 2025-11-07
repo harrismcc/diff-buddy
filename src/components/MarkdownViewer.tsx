@@ -1,133 +1,46 @@
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-
-// Import highlight.js theme dynamically on client side
-if (typeof window !== "undefined") {
-	import("highlight.js/styles/github-dark.css");
-}
 
 interface MarkdownViewerProps {
 	content: string;
 }
 
 export function MarkdownViewer({ content }: MarkdownViewerProps) {
-	// Custom components for markdown elements
 	const components: Components = {
-		h1: ({ children }) => (
-			<h1 className="text-4xl font-bold text-cyan-400 mb-6 mt-8 first:mt-0">
-				{children}
-			</h1>
-		),
-		h2: ({ children }) => (
-			<h2 className="text-3xl font-semibold text-cyan-400 mb-5 mt-12 border-b border-slate-700 pb-2">
-				{children}
-			</h2>
-		),
-		h3: ({ children }) => (
-			<h3 className="text-2xl font-semibold text-cyan-300 mb-4 mt-8">
-				{children}
-			</h3>
-		),
-		h4: ({ children }) => (
-			<h4 className="text-xl font-semibold text-cyan-300 mb-3 mt-6">
-				{children}
-			</h4>
-		),
-		p: ({ children }) => (
-			<p className="text-gray-300 leading-relaxed mb-5 text-lg">{children}</p>
-		),
-		a: ({ href, children }) => (
-			<a
-				href={href}
-				className="text-cyan-400 hover:text-cyan-300 underline decoration-cyan-400/30 hover:decoration-cyan-300 transition-colors"
-				target="_blank"
-				rel="noopener noreferrer"
-			>
-				{children}
-			</a>
-		),
-		ul: ({ children }) => (
-			<ul className="list-disc list-inside text-gray-300 mb-5 space-y-2 ml-4">
-				{children}
-			</ul>
-		),
-		ol: ({ children }) => (
-			<ol className="list-decimal list-inside text-gray-300 mb-5 space-y-2 ml-4">
-				{children}
-			</ol>
-		),
-		li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-		blockquote: ({ children }) => (
-			<blockquote className="border-l-4 border-cyan-400 pl-4 italic text-gray-400 my-6 bg-slate-900/30 py-2">
-				{children}
-			</blockquote>
-		),
-		code: ({ className, children }) => {
-			const isInline = !className;
-			if (isInline) {
+		code: ({ className, children, ...props }) => {
+			// Detect if this is a code block (has language-* className) or inline code
+			const isCodeBlock = /language-(\w+)/.test(className || "");
+
+			// Inline code (single backtick) - render normally with styling
+			if (!isCodeBlock) {
 				return (
-					<code className="text-cyan-300 bg-slate-900/70 px-1.5 py-0.5 rounded text-sm font-mono">
+					<code className="text-primary bg-muted px-1 py-0.5 rounded text-[0.875em] font-mono">
 						{children}
 					</code>
 				);
 			}
+
+			// Full code block (triple backticks) - return text directly
+			return <>{children}</>;
+		},
+		pre: ({ children }) => {
+			// Full code block wrapper - custom logic placeholder
+			// TODO: Implement custom code block logic
 			return (
-				<code className={className}>
+				<div className="bg-muted p-4 rounded-lg whitespace-pre-wrap font-mono text-sm my-4 text-foreground border border-border">
+					pre?
 					{children}
-				</code>
+				</div>
 			);
 		},
-		pre: ({ children }) => (
-			<pre className="bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-x-auto mb-6 shadow-lg">
-				{children}
-			</pre>
-		),
-		strong: ({ children }) => (
-			<strong className="font-semibold text-white">{children}</strong>
-		),
-		em: ({ children }) => (
-			<em className="italic text-gray-200">{children}</em>
-		),
-		hr: () => <hr className="border-slate-700 my-8" />,
-		table: ({ children }) => (
-			<div className="overflow-x-auto mb-6">
-				<table className="min-w-full border-collapse border border-slate-700">
-					{children}
-				</table>
-			</div>
-		),
-		thead: ({ children }) => (
-			<thead className="bg-slate-800">{children}</thead>
-		),
-		tbody: ({ children }) => <tbody>{children}</tbody>,
-		tr: ({ children }) => (
-			<tr className="border-b border-slate-700">{children}</tr>
-		),
-		th: ({ children }) => (
-			<th className="border border-slate-700 px-4 py-2 text-left font-semibold text-cyan-400">
-				{children}
-			</th>
-		),
-		td: ({ children }) => (
-			<td className="border border-slate-700 px-4 py-2 text-gray-300">
-				{children}
-			</td>
-		),
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 py-12 px-6">
-			<article className="max-w-4xl mx-auto bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-8 md:p-12 shadow-2xl">
-				<ReactMarkdown
-					remarkPlugins={[remarkGfm]}
-					rehypePlugins={[rehypeHighlight]}
-					components={components}
-				>
-					{content}
-				</ReactMarkdown>
-			</article>
+		<div className="prose prose-invert prose-lg max-w-none prose-headings:text-primary prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-6 prose-h1:mt-8 prose-h1:first:mt-0 prose-h2:text-3xl prose-h2:font-semibold prose-h2:mb-5 prose-h2:mt-12 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-2xl prose-h3:font-semibold prose-h3:mb-4 prose-h3:mt-8 prose-h4:text-xl prose-h4:font-semibold prose-h4:mb-3 prose-h4:mt-6 prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-5 prose-p:text-lg prose-a:text-primary prose-a:underline prose-a:decoration-primary/30 hover:prose-a:text-primary/80 hover:prose-a:decoration-primary/50 prose-strong:font-semibold prose-strong:text-foreground prose-em:italic prose-em:text-muted-foreground prose-ul:text-foreground prose-ul:mb-5 prose-ul:space-y-2 prose-ol:text-foreground prose-ol:mb-5 prose-ol:space-y-2 prose-li:leading-relaxed prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground prose-blockquote:my-6 prose-blockquote:bg-muted/30 prose-blockquote:py-2 prose-hr:border-border prose-hr:my-8 prose-table:border-collapse prose-table:border prose-table:border-border prose-thead:bg-muted prose-tr:border-b prose-tr:border-border prose-th:border prose-th:border-border prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-th:text-primary prose-td:border prose-td:border-border prose-td:px-4 prose-td:py-2 prose-td:text-foreground">
+			<ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+				{content}
+			</ReactMarkdown>
 		</div>
 	);
 }
