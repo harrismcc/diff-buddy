@@ -1,7 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import DiffViewer from "./DiffViewer";
 import { TableOfContents, type TocItem } from "./TableOfContents";
 
@@ -28,103 +28,106 @@ function extractHeadings(markdown: string): TocItem[] {
 	return headings;
 }
 
-export function MarkdownViewer({ content }: MarkdownViewerProps) {
+export const MarkdownViewer = memo(function MarkdownViewer({ content }: MarkdownViewerProps) {
 	const headings = useMemo(() => extractHeadings(content), [content]);
-	const components: Components = {
-		h1: ({ children }) => {
-			const text = String(children);
-			const id = text
-				.toLowerCase()
-				.replace(/[^\w\s-]/g, "")
-				.replace(/\s+/g, "-");
-			return <h1 id={id}>{children}</h1>;
-		},
-		h2: ({ children }) => {
-			const text = String(children);
-			const id = text
-				.toLowerCase()
-				.replace(/[^\w\s-]/g, "")
-				.replace(/\s+/g, "-");
-			return <h2 id={id}>{children}</h2>;
-		},
-		h3: ({ children }) => {
-			const text = String(children);
-			const id = text
-				.toLowerCase()
-				.replace(/[^\w\s-]/g, "")
-				.replace(/\s+/g, "-");
-			return <h3 id={id}>{children}</h3>;
-		},
-		h4: ({ children }) => {
-			const text = String(children);
-			const id = text
-				.toLowerCase()
-				.replace(/[^\w\s-]/g, "")
-				.replace(/\s+/g, "-");
-			return <h4 id={id}>{children}</h4>;
-		},
-		h5: ({ children }) => {
-			const text = String(children);
-			const id = text
-				.toLowerCase()
-				.replace(/[^\w\s-]/g, "")
-				.replace(/\s+/g, "-");
-			return <h5 id={id}>{children}</h5>;
-		},
-		h6: ({ children }) => {
-			const text = String(children);
-			const id = text
-				.toLowerCase()
-				.replace(/[^\w\s-]/g, "")
-				.replace(/\s+/g, "-");
-			return <h6 id={id}>{children}</h6>;
-		},
-		code: ({ className, children }) => {
-			// Detect if this is a code block (has language-* className) or inline code
-			const isCodeBlock = /language-(\w+)/.test(className || "");
+	const components: Components = useMemo(
+		() => ({
+			h1: ({ children }) => {
+				const text = String(children);
+				const id = text
+					.toLowerCase()
+					.replace(/[^\w\s-]/g, "")
+					.replace(/\s+/g, "-");
+				return <h1 id={id}>{children}</h1>;
+			},
+			h2: ({ children }) => {
+				const text = String(children);
+				const id = text
+					.toLowerCase()
+					.replace(/[^\w\s-]/g, "")
+					.replace(/\s+/g, "-");
+				return <h2 id={id}>{children}</h2>;
+			},
+			h3: ({ children }) => {
+				const text = String(children);
+				const id = text
+					.toLowerCase()
+					.replace(/[^\w\s-]/g, "")
+					.replace(/\s+/g, "-");
+				return <h3 id={id}>{children}</h3>;
+			},
+			h4: ({ children }) => {
+				const text = String(children);
+				const id = text
+					.toLowerCase()
+					.replace(/[^\w\s-]/g, "")
+					.replace(/\s+/g, "-");
+				return <h4 id={id}>{children}</h4>;
+			},
+			h5: ({ children }) => {
+				const text = String(children);
+				const id = text
+					.toLowerCase()
+					.replace(/[^\w\s-]/g, "")
+					.replace(/\s+/g, "-");
+				return <h5 id={id}>{children}</h5>;
+			},
+			h6: ({ children }) => {
+				const text = String(children);
+				const id = text
+					.toLowerCase()
+					.replace(/[^\w\s-]/g, "")
+					.replace(/\s+/g, "-");
+				return <h6 id={id}>{children}</h6>;
+			},
+			code: ({ className, children }) => {
+				// Detect if this is a code block (has language-* className) or inline code
+				const isCodeBlock = /language-(\w+)/.test(className || "");
 
-			// Inline code (single backtick) - render normally with styling
-			if (!isCodeBlock) {
-				return (
-					<code className="text-primary bg-muted px-1 py-0.5 rounded text-[0.875em] font-mono">
-						{children}
-					</code>
+				// Inline code (single backtick) - render normally with styling
+				if (!isCodeBlock) {
+					return (
+						<code className="text-primary bg-muted px-1 py-0.5 rounded text-[0.875em] font-mono">
+							{children}
+						</code>
+					);
+				}
+
+				// Full code block (triple backticks) - return text directly
+				return <>{children}</>;
+			},
+			pre: ({ children }) => {
+				// Extract text content from children
+				const childNode = Array.isArray(children) ? children[0] : children;
+				const textContent = String(
+					typeof childNode === "object" &&
+						childNode !== null &&
+						"props" in childNode
+						? childNode.props?.children || ""
+						: "",
 				);
-			}
 
-			// Full code block (triple backticks) - return text directly
-			return <>{children}</>;
-		},
-		pre: ({ children }) => {
-			// Extract text content from children
-			const childNode = Array.isArray(children) ? children[0] : children;
-			const textContent = String(
-				typeof childNode === "object" &&
-					childNode !== null &&
-					"props" in childNode
-					? childNode.props?.children || ""
-					: "",
-			);
+				// Check if this is diff content (starts with diff markers)
+				const isDiff = /^(diff --git|@@|[\+\-]{3}\s)/.test(textContent.trim());
 
-			// Check if this is diff content (starts with diff markers)
-			const isDiff = /^(diff --git|@@|[\+\-]{3}\s)/.test(textContent.trim());
+				if (isDiff) {
+					return (
+						<div className="my-4 not-prose">
+							<DiffViewer diff={textContent} />
+						</div>
+					);
+				}
 
-			if (isDiff) {
+				// Regular code block
 				return (
-					<div className="my-4 not-prose">
-						<DiffViewer diff={textContent} />
+					<div className="bg-muted p-4 rounded-lg whitespace-pre-wrap font-mono text-sm my-4 text-foreground border border-border">
+						{children}
 					</div>
 				);
-			}
-
-			// Regular code block
-			return (
-				<div className="bg-muted p-4 rounded-lg whitespace-pre-wrap font-mono text-sm my-4 text-foreground border border-border">
-					{children}
-				</div>
-			);
-		},
-	};
+			},
+		}),
+		[],
+	);
 
 	return (
 		<div className="flex gap-8 max-w-7xl mx-auto">
@@ -138,4 +141,4 @@ export function MarkdownViewer({ content }: MarkdownViewerProps) {
 			</div>
 		</div>
 	);
-}
+});

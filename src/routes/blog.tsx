@@ -1,14 +1,11 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { createFileRoute } from "@tanstack/react-router";
 import { MarkdownViewer } from "../components/MarkdownViewer";
 
 export const Route = createFileRoute("/blog")({
 	component: BlogPage,
 	loader: async () => {
-		// Read the markdown file from the project root
-		const filePath = join(process.cwd(), "data/1625.md");
-		const content = await readFile(filePath, "utf-8");
+		const response = await fetch("/data/1625.md");
+		const content = await response.text();
 		return content;
 	},
 });

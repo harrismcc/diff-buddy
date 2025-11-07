@@ -1,0 +1,228 @@
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index a6a7db880..e104d3b29 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -167,6 +167,13 @@ jobs:
+         env:
+           NODE_ENV: production
+ 
++      - name: Mark Linear issues as done
++        if: ${{ success() && inputs.environment == 'production' }}
++        run: |
++          npx tsx scripts/deploy/mark-pending-deploy-done.ts
++        env:
++          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
++
+       - name: Notify deployment failure
+         if: ${{ failure() }}
+         uses: slackapi/slack-github-action@v2.0.0
+diff --git a/package.json b/package.json
+index 7c8e40bba..3adefa2b9 100644
+--- a/package.json
++++ b/package.json
+@@ -31,10 +31,11 @@
+     "cdk:diff": "aws sts get-caller-identity --profile development && cdk --profile development -c config=development diff",
+     "cdk:deploy": "aws sts get-caller-identity --profile development && npm run pre-deploy '_dev_' && SENTRY_RELEASE=$(git rev-parse --short HEAD) MODE=staging dotenv -e .env.staging -- cdk --profile development -c config=development deploy --all && npm run cdk:cleanup",
+     "cdk:diff-production": "aws sts get-caller-identity --profile production cdk --profile production -c config=production diff",
+-    "cdk:deploy-production": "aws sts get-caller-identity --profile production && npm run pre-deploy '*prod*' && SENTRY_RELEASE=$(git rev-parse --short HEAD) MODE=production dotenv -e .env.production -- cdk --profile production -c config=production deploy --all  && npm run cdk:cleanup",
++    "cdk:deploy-production": "aws sts get-caller-identity --profile production && npm run pre-deploy '*prod*' && SENTRY_RELEASE=$(git rev-parse --short HEAD) MODE=production dotenv -e .env.production -- cdk --profile production -c config=production deploy --all && npm run post-deploy-success && npm run cdk:cleanup",
+     "opensearch:migrate": "tsx --env-file=.env.development ./scripts/opensearch.ts migrate",
+     "opensearch:reindex": "tsx --env-file=.env.development ./scripts/opensearch.ts reindex",
+     "pre-deploy": "tsx --env-file=.env.development ./scripts/deploy/pre-deploy.ts",
++    "post-deploy-success": "tsx --env-file=.env.development ./scripts/deploy/mark-pending-deploy-done.ts",
+     "prisma:generate": "prisma generate",
+     "prisma:migrate:local": "dotenv -e .env.development -- npx prisma migrate dev",
+     "prisma:migrate:testing": "dotenv -e .env.testing -- npx prisma migrate dev",
+diff --git a/scripts/deploy/mark-pending-deploy-done.ts b/scripts/deploy/mark-pending-deploy-done.ts
+new file mode 100755
+index 000000000..287148eaf
+--- /dev/null
++++ b/scripts/deploy/mark-pending-deploy-done.ts
+@@ -0,0 +1,187 @@
++#!/usr/bin/env node
++/**
++ * Script to mark all Linear issues in "Pending Deploy" state as "Done"
++ *
++ * Usage:
++ *   npm exec -- tsx --env-file=.env.development scripts/deploy/mark-pending-deploy-done.ts
++ */
++
++const LINEAR_API_ENDPOINT = 'https://api.linear.app/graphql';
++
++interface GraphQLResponse<T> {
++  data?: T;
++  errors?: { message: string }[];
++}
++
++interface Issue {
++  id: string;
++  identifier: string;
++  title: string;
++}
++
++interface WorkflowState {
++  id: string;
++  name: string;
++}
++
++async function graphqlRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
++  const apiKey = process.env.LINEAR_API_KEY;
++  if (!apiKey) {
++    throw new Error('LINEAR_API_KEY environment variable is required');
++  }
++
++  const response = await fetch(LINEAR_API_ENDPOINT, {
++    method: 'POST',
++    headers: {
++      'Content-Type': 'application/json',
++      Authorization: apiKey,
++    },
++    body: JSON.stringify({ query, variables }),
++  });
++
++  if (!response.ok) {
++    throw new Error(`HTTP error! status: ${response.status}`);
++  }
++
++  const json = (await response.json()) as GraphQLResponse<T>;
++
++  if (json.errors) {
++    throw new Error(`GraphQL errors: ${json.errors.map((e) => e.message).join(', ')}`);
++  }
++
++  if (!json.data) {
++    throw new Error('No data returned from GraphQL query');
++  }
++
++  return json.data;
++}
++
++async function getPendingDeployIssues(): Promise<Issue[]> {
++  const query = `
++    query GetPendingDeployIssues {
++      issues(
++        filter: {
++          team: { key: { eq: "INF" } }
++          state: { name: { eq: "Pending Deploy" } }
++        }
++      ) {
++        nodes {
++          id
++          identifier
++          title
++        }
++      }
++    }
++  `;
++
++  const data = await graphqlRequest<{
++    issues: { nodes: Issue[] };
++  }>(query);
++
++  return data.issues.nodes;
++}
++
++async function getDoneStateId(): Promise<string> {
++  const query = `
++    query GetDoneState {
++      workflowStates(
++        filter: {
++          team: { key: { eq: "INF" } }
++          name: { eq: "Done" }
++        }
++      ) {
++        nodes {
++          id
++          name
++        }
++      }
++    }
++  `;
++
++  const data = await graphqlRequest<{
++    workflowStates: { nodes: WorkflowState[] };
++  }>(query);
++
++  const doneState = data.workflowStates.nodes[0];
++  if (!doneState) {
++    throw new Error('Could not find "Done" workflow state');
++  }
++
++  return doneState.id;
++}
++
++async function updateIssueState(issueId: string, stateId: string): Promise<void> {
++  const mutation = `
++    mutation UpdateIssueState($issueId: String!, $stateId: String!) {
++      issueUpdate(
++        id: $issueId
++        input: { stateId: $stateId }
++      ) {
++        success
++        issue {
++          id
++          identifier
++          state {
++            name
++          }
++        }
++      }
++    }
++  `;
++
++  const data = await graphqlRequest<{
++    issueUpdate: {
++      success: boolean;
++      issue: {
++        id: string;
++        identifier: string;
++        state: { name: string };
++      };
++    };
++  }>(mutation, { issueId, stateId });
++
++  if (!data.issueUpdate.success) {
++    throw new Error(`Failed to update issue ${issueId}`);
++  }
++}
++
++async function main() {
++  if (!process.env.LINEAR_API_KEY) {
++    console.log('LINEAR_API_KEY not set, skipping Linear issue updates.');
++    return;
++  }
++
++  console.log('Fetching issues in "Pending Deploy" state...');
++  const issues = await getPendingDeployIssues();
++
++  if (issues.length === 0) {
++    console.log('No issues found in "Pending Deploy" state.');
++    return;
++  }
++
++  console.log(`Found ${issues.length} issue(s) in "Pending Deploy" state:`);
++  issues.forEach((issue) => {
++    console.log(`  - ${issue.identifier}: ${issue.title}`);
++  });
++
++  console.log('\nFetching "Done" state ID...');
++  const doneStateId = await getDoneStateId();
++  console.log(`Done state ID: ${doneStateId}`);
++
++  console.log('\nUpdating issues to "Done" state...');
++  for (const issue of issues) {
++    try {
++      await updateIssueState(issue.id, doneStateId);
++      console.log(`✓ Updated ${issue.identifier}`);
++    } catch (error) {
++      console.error(`✗ Failed to update ${issue.identifier}:`, error);
++    }
++  }
++
++  console.log('\nDone!');
++}
++
++main().catch((error) => {
++  console.error('Error:', error);
++  process.exit(1);
++});

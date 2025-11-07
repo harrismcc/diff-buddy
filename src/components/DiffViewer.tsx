@@ -1,8 +1,9 @@
 import { parseDiff } from "@/components/ui/diff/utils";
 import { Diff, Hunk } from "@/components/ui/diff";
+import { useMemo } from "react";
 
 const DiffViewer = ({ diff }: { diff: string }) => {
-	const files = parseDiff(diff);
+	const files = useMemo(() => parseDiff(diff), [diff]);
 
 	const calculateStats = (file: any) => {
 		let additions = 0;

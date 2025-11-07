@@ -4,7 +4,6 @@ import {
 	Outlet,
 	useMatchRoute,
 } from "@tanstack/react-router";
-import { PRHeader } from "@/components/PRHeader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/pr/$prNumber")({
@@ -21,7 +20,6 @@ function RouteComponent() {
 
 	return (
 		<div>
-			<PRHeader prNumber={prNumber} />
 			<div className="container mx-auto px-4 py-8">
 				<Tabs value={activeTab} className="mb-6">
 					<TabsList>
