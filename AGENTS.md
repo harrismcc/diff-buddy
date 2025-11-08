@@ -19,14 +19,6 @@
 - TypeScript strict mode enabled
 - No unused locals/parameters
 
-## Convex Schema Rules
-- Use `v` validator builder from Convex
-- System fields: `_id`, `_creationTime` (auto-generated)
-- Define tables with `defineTable()` and proper validators
-- Add indexes with `.index()` method
-- Validators: `v.string()`, `v.number()`, `v.boolean()`, `v.id("tableName")`, `v.optional()`, `v.union()`, `v.object()`, `v.array()`
-- Example schema patterns in .cursorrules - follow the structure with proper relationships and indexes
-
 ## Component Guidelines
 - Use shadcn components: `pnpx shadcn@latest add <component>`
 - Utility function: `cn()` for class merging (clsx + tailwind-merge)

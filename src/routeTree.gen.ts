@@ -9,26 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TestRouteImport } from './routes/test'
-import { Route as BlogRouteImport } from './routes/blog'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthTestRouteImport } from './routes/auth/test'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
-import { Route as PrPrNumberRouteRouteImport } from './routes/pr.$prNumber/route'
-import { Route as PrPrNumberIndexRouteImport } from './routes/pr.$prNumber/index'
-import { Route as PrPrNumberDiffRouteImport } from './routes/pr.$prNumber/diff'
+import { Route as AuthenticatedTestRouteImport } from './routes/_authenticated/test'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as OwnerRepoPullPull_numberRouteRouteImport } from './routes/$owner.$repo.pull.$pull_number/route'
-import { Route as OwnerRepoPullPull_numberIndexRouteImport } from './routes/$owner.$repo.pull.$pull_number/index'
+import { Route as AuthenticatedPrPrNumberRouteRouteImport } from './routes/_authenticated/pr.$prNumber/route'
+import { Route as AuthenticatedPrPrNumberIndexRouteImport } from './routes/_authenticated/pr.$prNumber/index'
+import { Route as AuthenticatedPrPrNumberDiffRouteImport } from './routes/_authenticated/pr.$prNumber/diff'
+import { Route as AuthenticatedOwnerRepoPullPull_numberRouteRouteImport } from './routes/_authenticated/$owner.$repo.pull.$pull_number/route'
+import { Route as AuthenticatedOwnerRepoPullPull_numberIndexRouteImport } from './routes/_authenticated/$owner.$repo.pull.$pull_number/index'
 
-const TestRoute = TestRouteImport.update({
-  id: '/test',
-  path: '/test',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -46,86 +40,91 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PrPrNumberRouteRoute = PrPrNumberRouteRouteImport.update({
-  id: '/pr/$prNumber',
-  path: '/pr/$prNumber',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrPrNumberIndexRoute = PrPrNumberIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PrPrNumberRouteRoute,
-} as any)
-const PrPrNumberDiffRoute = PrPrNumberDiffRouteImport.update({
-  id: '/diff',
-  path: '/diff',
-  getParentRoute: () => PrPrNumberRouteRoute,
+const AuthenticatedTestRoute = AuthenticatedTestRouteImport.update({
+  id: '/test',
+  path: '/test',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OwnerRepoPullPull_numberRouteRoute =
-  OwnerRepoPullPull_numberRouteRouteImport.update({
-    id: '/$owner/$repo/pull/$pull_number',
-    path: '/$owner/$repo/pull/$pull_number',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedPrPrNumberRouteRoute =
+  AuthenticatedPrPrNumberRouteRouteImport.update({
+    id: '/pr/$prNumber',
+    path: '/pr/$prNumber',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const OwnerRepoPullPull_numberIndexRoute =
-  OwnerRepoPullPull_numberIndexRouteImport.update({
+const AuthenticatedPrPrNumberIndexRoute =
+  AuthenticatedPrPrNumberIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => OwnerRepoPullPull_numberRouteRoute,
+    getParentRoute: () => AuthenticatedPrPrNumberRouteRoute,
+  } as any)
+const AuthenticatedPrPrNumberDiffRoute =
+  AuthenticatedPrPrNumberDiffRouteImport.update({
+    id: '/diff',
+    path: '/diff',
+    getParentRoute: () => AuthenticatedPrPrNumberRouteRoute,
+  } as any)
+const AuthenticatedOwnerRepoPullPull_numberRouteRoute =
+  AuthenticatedOwnerRepoPullPull_numberRouteRouteImport.update({
+    id: '/$owner/$repo/pull/$pull_number',
+    path: '/$owner/$repo/pull/$pull_number',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOwnerRepoPullPull_numberIndexRoute =
+  AuthenticatedOwnerRepoPullPull_numberIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOwnerRepoPullPull_numberRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/blog': typeof BlogRoute
-  '/test': typeof TestRoute
-  '/pr/$prNumber': typeof PrPrNumberRouteRouteWithChildren
+  '/test': typeof AuthenticatedTestRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/test': typeof AuthTestRoute
+  '/pr/$prNumber': typeof AuthenticatedPrPrNumberRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/pr/$prNumber/diff': typeof PrPrNumberDiffRoute
-  '/pr/$prNumber/': typeof PrPrNumberIndexRoute
-  '/$owner/$repo/pull/$pull_number': typeof OwnerRepoPullPull_numberRouteRouteWithChildren
-  '/$owner/$repo/pull/$pull_number/': typeof OwnerRepoPullPull_numberIndexRoute
+  '/pr/$prNumber/diff': typeof AuthenticatedPrPrNumberDiffRoute
+  '/pr/$prNumber/': typeof AuthenticatedPrPrNumberIndexRoute
+  '/$owner/$repo/pull/$pull_number': typeof AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren
+  '/$owner/$repo/pull/$pull_number/': typeof AuthenticatedOwnerRepoPullPull_numberIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/blog': typeof BlogRoute
-  '/test': typeof TestRoute
+  '/test': typeof AuthenticatedTestRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/test': typeof AuthTestRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/pr/$prNumber/diff': typeof PrPrNumberDiffRoute
-  '/pr/$prNumber': typeof PrPrNumberIndexRoute
-  '/$owner/$repo/pull/$pull_number': typeof OwnerRepoPullPull_numberIndexRoute
+  '/pr/$prNumber/diff': typeof AuthenticatedPrPrNumberDiffRoute
+  '/pr/$prNumber': typeof AuthenticatedPrPrNumberIndexRoute
+  '/$owner/$repo/pull/$pull_number': typeof AuthenticatedOwnerRepoPullPull_numberIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/blog': typeof BlogRoute
-  '/test': typeof TestRoute
-  '/pr/$prNumber': typeof PrPrNumberRouteRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_authenticated/test': typeof AuthenticatedTestRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/test': typeof AuthTestRoute
+  '/_authenticated/pr/$prNumber': typeof AuthenticatedPrPrNumberRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/pr/$prNumber/diff': typeof PrPrNumberDiffRoute
-  '/pr/$prNumber/': typeof PrPrNumberIndexRoute
-  '/$owner/$repo/pull/$pull_number': typeof OwnerRepoPullPull_numberRouteRouteWithChildren
-  '/$owner/$repo/pull/$pull_number/': typeof OwnerRepoPullPull_numberIndexRoute
+  '/_authenticated/pr/$prNumber/diff': typeof AuthenticatedPrPrNumberDiffRoute
+  '/_authenticated/pr/$prNumber/': typeof AuthenticatedPrPrNumberIndexRoute
+  '/_authenticated/$owner/$repo/pull/$pull_number': typeof AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren
+  '/_authenticated/$owner/$repo/pull/$pull_number/': typeof AuthenticatedOwnerRepoPullPull_numberIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/blog'
     | '/test'
-    | '/pr/$prNumber'
     | '/auth/login'
     | '/auth/test'
+    | '/pr/$prNumber'
     | '/api/auth/$'
     | '/pr/$prNumber/diff'
     | '/pr/$prNumber/'
@@ -134,7 +133,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/blog'
     | '/test'
     | '/auth/login'
     | '/auth/test'
@@ -145,43 +143,33 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/blog'
-    | '/test'
-    | '/pr/$prNumber'
+    | '/_authenticated'
+    | '/_authenticated/test'
     | '/auth/login'
     | '/auth/test'
+    | '/_authenticated/pr/$prNumber'
     | '/api/auth/$'
-    | '/pr/$prNumber/diff'
-    | '/pr/$prNumber/'
-    | '/$owner/$repo/pull/$pull_number'
-    | '/$owner/$repo/pull/$pull_number/'
+    | '/_authenticated/pr/$prNumber/diff'
+    | '/_authenticated/pr/$prNumber/'
+    | '/_authenticated/$owner/$repo/pull/$pull_number'
+    | '/_authenticated/$owner/$repo/pull/$pull_number/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BlogRoute: typeof BlogRoute
-  TestRoute: typeof TestRoute
-  PrPrNumberRouteRoute: typeof PrPrNumberRouteRouteWithChildren
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthLoginRoute: typeof AuthLoginRoute
   AuthTestRoute: typeof AuthTestRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  OwnerRepoPullPull_numberRouteRoute: typeof OwnerRepoPullPull_numberRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/test': {
-      id: '/test'
-      path: '/test'
-      fullPath: '/test'
-      preLoaderRoute: typeof TestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -205,26 +193,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pr/$prNumber': {
-      id: '/pr/$prNumber'
-      path: '/pr/$prNumber'
-      fullPath: '/pr/$prNumber'
-      preLoaderRoute: typeof PrPrNumberRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pr/$prNumber/': {
-      id: '/pr/$prNumber/'
-      path: '/'
-      fullPath: '/pr/$prNumber/'
-      preLoaderRoute: typeof PrPrNumberIndexRouteImport
-      parentRoute: typeof PrPrNumberRouteRoute
-    }
-    '/pr/$prNumber/diff': {
-      id: '/pr/$prNumber/diff'
-      path: '/diff'
-      fullPath: '/pr/$prNumber/diff'
-      preLoaderRoute: typeof PrPrNumberDiffRouteImport
-      parentRoute: typeof PrPrNumberRouteRoute
+    '/_authenticated/test': {
+      id: '/_authenticated/test'
+      path: '/test'
+      fullPath: '/test'
+      preLoaderRoute: typeof AuthenticatedTestRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -233,61 +207,98 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$owner/$repo/pull/$pull_number': {
-      id: '/$owner/$repo/pull/$pull_number'
+    '/_authenticated/pr/$prNumber': {
+      id: '/_authenticated/pr/$prNumber'
+      path: '/pr/$prNumber'
+      fullPath: '/pr/$prNumber'
+      preLoaderRoute: typeof AuthenticatedPrPrNumberRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pr/$prNumber/': {
+      id: '/_authenticated/pr/$prNumber/'
+      path: '/'
+      fullPath: '/pr/$prNumber/'
+      preLoaderRoute: typeof AuthenticatedPrPrNumberIndexRouteImport
+      parentRoute: typeof AuthenticatedPrPrNumberRouteRoute
+    }
+    '/_authenticated/pr/$prNumber/diff': {
+      id: '/_authenticated/pr/$prNumber/diff'
+      path: '/diff'
+      fullPath: '/pr/$prNumber/diff'
+      preLoaderRoute: typeof AuthenticatedPrPrNumberDiffRouteImport
+      parentRoute: typeof AuthenticatedPrPrNumberRouteRoute
+    }
+    '/_authenticated/$owner/$repo/pull/$pull_number': {
+      id: '/_authenticated/$owner/$repo/pull/$pull_number'
       path: '/$owner/$repo/pull/$pull_number'
       fullPath: '/$owner/$repo/pull/$pull_number'
-      preLoaderRoute: typeof OwnerRepoPullPull_numberRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedOwnerRepoPullPull_numberRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/$owner/$repo/pull/$pull_number/': {
-      id: '/$owner/$repo/pull/$pull_number/'
+    '/_authenticated/$owner/$repo/pull/$pull_number/': {
+      id: '/_authenticated/$owner/$repo/pull/$pull_number/'
       path: '/'
       fullPath: '/$owner/$repo/pull/$pull_number/'
-      preLoaderRoute: typeof OwnerRepoPullPull_numberIndexRouteImport
-      parentRoute: typeof OwnerRepoPullPull_numberRouteRoute
+      preLoaderRoute: typeof AuthenticatedOwnerRepoPullPull_numberIndexRouteImport
+      parentRoute: typeof AuthenticatedOwnerRepoPullPull_numberRouteRoute
     }
   }
 }
 
-interface PrPrNumberRouteRouteChildren {
-  PrPrNumberDiffRoute: typeof PrPrNumberDiffRoute
-  PrPrNumberIndexRoute: typeof PrPrNumberIndexRoute
+interface AuthenticatedPrPrNumberRouteRouteChildren {
+  AuthenticatedPrPrNumberDiffRoute: typeof AuthenticatedPrPrNumberDiffRoute
+  AuthenticatedPrPrNumberIndexRoute: typeof AuthenticatedPrPrNumberIndexRoute
 }
 
-const PrPrNumberRouteRouteChildren: PrPrNumberRouteRouteChildren = {
-  PrPrNumberDiffRoute: PrPrNumberDiffRoute,
-  PrPrNumberIndexRoute: PrPrNumberIndexRoute,
-}
-
-const PrPrNumberRouteRouteWithChildren = PrPrNumberRouteRoute._addFileChildren(
-  PrPrNumberRouteRouteChildren,
-)
-
-interface OwnerRepoPullPull_numberRouteRouteChildren {
-  OwnerRepoPullPull_numberIndexRoute: typeof OwnerRepoPullPull_numberIndexRoute
-}
-
-const OwnerRepoPullPull_numberRouteRouteChildren: OwnerRepoPullPull_numberRouteRouteChildren =
+const AuthenticatedPrPrNumberRouteRouteChildren: AuthenticatedPrPrNumberRouteRouteChildren =
   {
-    OwnerRepoPullPull_numberIndexRoute: OwnerRepoPullPull_numberIndexRoute,
+    AuthenticatedPrPrNumberDiffRoute: AuthenticatedPrPrNumberDiffRoute,
+    AuthenticatedPrPrNumberIndexRoute: AuthenticatedPrPrNumberIndexRoute,
   }
 
-const OwnerRepoPullPull_numberRouteRouteWithChildren =
-  OwnerRepoPullPull_numberRouteRoute._addFileChildren(
-    OwnerRepoPullPull_numberRouteRouteChildren,
+const AuthenticatedPrPrNumberRouteRouteWithChildren =
+  AuthenticatedPrPrNumberRouteRoute._addFileChildren(
+    AuthenticatedPrPrNumberRouteRouteChildren,
   )
+
+interface AuthenticatedOwnerRepoPullPull_numberRouteRouteChildren {
+  AuthenticatedOwnerRepoPullPull_numberIndexRoute: typeof AuthenticatedOwnerRepoPullPull_numberIndexRoute
+}
+
+const AuthenticatedOwnerRepoPullPull_numberRouteRouteChildren: AuthenticatedOwnerRepoPullPull_numberRouteRouteChildren =
+  {
+    AuthenticatedOwnerRepoPullPull_numberIndexRoute:
+      AuthenticatedOwnerRepoPullPull_numberIndexRoute,
+  }
+
+const AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren =
+  AuthenticatedOwnerRepoPullPull_numberRouteRoute._addFileChildren(
+    AuthenticatedOwnerRepoPullPull_numberRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedTestRoute: typeof AuthenticatedTestRoute
+  AuthenticatedPrPrNumberRouteRoute: typeof AuthenticatedPrPrNumberRouteRouteWithChildren
+  AuthenticatedOwnerRepoPullPull_numberRouteRoute: typeof AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedTestRoute: AuthenticatedTestRoute,
+  AuthenticatedPrPrNumberRouteRoute:
+    AuthenticatedPrPrNumberRouteRouteWithChildren,
+  AuthenticatedOwnerRepoPullPull_numberRouteRoute:
+    AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BlogRoute: BlogRoute,
-  TestRoute: TestRoute,
-  PrPrNumberRouteRoute: PrPrNumberRouteRouteWithChildren,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthLoginRoute: AuthLoginRoute,
   AuthTestRoute: AuthTestRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  OwnerRepoPullPull_numberRouteRoute:
-    OwnerRepoPullPull_numberRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

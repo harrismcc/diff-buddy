@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth/auth-client";
 import { Github } from "lucide-react";
 import { useState } from "react";
 
@@ -14,7 +14,7 @@ function RouteComponent() {
 	const handleGithubSignIn = () => {
 		authClient.signIn.social({
 			provider: "github",
-			callbackURL: "/api/auth/callback/github",
+			callbackURL: "/",
 		});
 	};
 

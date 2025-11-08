@@ -2,7 +2,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { request } from "@octokit/request";
 import { PRHeader } from "@/components/PRHeader";
 
-export const Route = createFileRoute("/$owner/$repo/pull/$pull_number")({
+export const Route = createFileRoute("/_authenticated/$owner/$repo/pull/$pull_number")({
 	loader: async ({ params: { owner, repo, pull_number } }) => {
 		const result = await request(
 			"GET /repos/{owner}/{repo}/pulls/{pull_number}",
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/$owner/$repo/pull/$pull_number")({
 					"X-GitHub-Api-Version": "2022-11-28",
 				},
 			},
-		);
+		)
 
 		return result.data;
 	},
@@ -31,5 +31,5 @@ function RouteComponent() {
 				<Outlet />
 			</div>
 		</div>
-	);
+	)
 }

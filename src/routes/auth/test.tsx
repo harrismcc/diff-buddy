@@ -1,28 +1,27 @@
-import { authClient } from "@/lib/auth-client";
-import { createFileRoute } from "@tanstack/react-router";
-import {
-	Authenticated,
-	Unauthenticated,
-	AuthLoading,
-	useQuery,
-} from "convex/react";
+import { authClient } from "@/lib/auth/auth-client";
+import { $getUser } from "@/lib/auth/functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/auth/test")({
-	loader: async () => {
-		const { data: session, error } = await authClient.getSession();
-		return { session };
+	beforeLoad: async ({ context }) => {
+		const user = $getUser();
+		if (!user) {
+			throw redirect({ to: "/auth/login" });
+		}
+
+		// re-return to update type as non-null for child routes
+		return { user };
 	},
 	component: RouteComponent,
 });
 
 function RouteComponent() {
-	const data = Route.useLoaderData();
-	return (
-		<div>
-			{data ? JSON.stringify(data.session) : "None"}
-			<Unauthenticated>Logged out</Unauthenticated>
-			<Authenticated>Logged in</Authenticated>
-			<AuthLoading>Loading...</AuthLoading>
-		</div>
-	);
+	const {
+		data: session,
+		isPending, //loading state
+		error, //error object
+		refetch, //refetch the session
+	} = authClient.useSession();
+
+	return <div>{session ? JSON.stringify(session.session) : "None"}</div>;
 }

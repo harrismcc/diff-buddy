@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const Route = createFileRoute("/pr/$prNumber")({
+export const Route = createFileRoute("/_authenticated/pr/$prNumber")({
 	component: RouteComponent,
 });
 
@@ -34,5 +34,5 @@ function RouteComponent() {
 				<Outlet />
 			</div>
 		</div>
-	);
+	)
 }

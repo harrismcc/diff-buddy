@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import DiffViewer from "../../components/DiffViewer";
 
-export const Route = createFileRoute("/pr/$prNumber/diff")({
+export const Route = createFileRoute("/_authenticated/pr/$prNumber/diff")({
 	component: BlogPage,
 	loader: async ({ params }) => {
 		const response = await fetch(`/data/${params.prNumber}.diff`);
