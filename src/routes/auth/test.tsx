@@ -10,7 +10,6 @@ import {
 export const Route = createFileRoute("/auth/test")({
 	loader: async () => {
 		const { data: session, error } = await authClient.getSession();
-		console.log("session", session);
 		return { session };
 	},
 	component: RouteComponent,

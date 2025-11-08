@@ -1,0 +1,1945 @@
+diff --git a/app/components/forms/library/Icon.tsx b/app/components/forms/library/Icon.tsx
+index a885cf2f8..c38bec477 100644
+--- a/app/components/forms/library/Icon.tsx
++++ b/app/components/forms/library/Icon.tsx
+@@ -2,12 +2,23 @@ import { Box, Flex } from '@radix-ui/themes';
+ import { type Static, Type } from '@sinclair/typebox';
+ 
+ import { FormComponentRegistration } from '../../../utils/forms/types';
+-import { ClockIcon, CompassIcon, IconProps, PlanCheckIcon } from '../../ui/icons/Icons';
++import {
++  CalendarIcon,
++  ClockIcon,
++  CompassIcon,
++  IconProps,
++  PlanCheckIcon,
++} from '../../ui/icons/Icons';
+ 
+ import Text from './Text';
+ 
+ const iconProps = Type.Object({
+-  name: Type.Union([Type.Literal('check'), Type.Literal('clock'), Type.Literal('compass')]),
++  name: Type.Union([
++    Type.Literal('check'),
++    Type.Literal('clock'),
++    Type.Literal('compass'),
++    Type.Literal('calendar'),
++  ]),
+   text: Type.Optional(Type.String()),
+   description: Type.Optional(Type.String()),
+ });
+@@ -16,6 +27,7 @@ const ICONS = {
+   check: PlanCheckIcon,
+   clock: ClockIcon,
+   compass: CompassIcon,
++  calendar: CalendarIcon,
+ } as const satisfies Record<Static<typeof iconProps>['name'], React.ComponentType<IconProps>>;
+ 
+ function Icon({ name, text, description }: Static<typeof iconProps>) {
+diff --git a/app/components/ui/icons/Icons.tsx b/app/components/ui/icons/Icons.tsx
+index 0784c20d7..81826b72e 100644
+--- a/app/components/ui/icons/Icons.tsx
++++ b/app/components/ui/icons/Icons.tsx
+@@ -1414,3 +1414,21 @@ export const HistoryIcon = ({ color = 'currentColor', width = 20, height = 20 }:
+     />
+   </svg>
+ );
++
++export const CalendarIcon = ({ color = 'currentColor', width = 20, height = 20 }: IconProps) => (
++  <svg
++    width={width}
++    height={height}
++    viewBox='0 0 17 18'
++    fill='none'
++    xmlns='http://www.w3.org/2000/svg'
++  >
++    <path
++      d='M4.79167 0.625V3.95833M11.4583 0.625V3.95833M0.625 7.29167H15.625M2.29167 2.29167H13.9583C14.8788 2.29167 15.625 3.03786 15.625 3.95833V15.625C15.625 16.5455 14.8788 17.2917 13.9583 17.2917H2.29167C1.37119 17.2917 0.625 16.5455 0.625 15.625V3.95833C0.625 3.03786 1.37119 2.29167 2.29167 2.29167Z'
++      stroke={color}
++      strokeWidth='1.25'
++      strokeLinecap='round'
++      strokeLinejoin='round'
++    />
++  </svg>
++);
+diff --git a/data/forms/forms.ts b/data/forms/forms.ts
+index 73dfb32fa..5b648bd6e 100644
+--- a/data/forms/forms.ts
++++ b/data/forms/forms.ts
+@@ -6,10 +6,12 @@ import { enforceValidFormConfiguration } from '../../app/utils/forms/forms';
+ 
+ import EL_SEGUNDO_FORM from './elSegundo/form';
+ import SF_PRJ_FORM from './sf/prj/form';
++import SONOMA_SPE_FORM from './sonoma/form';
+ 
+ const FORMS = {
+   [SF_PRJ_FORM.id]: enforceValidFormConfiguration(SF_PRJ_FORM),
+   [EL_SEGUNDO_FORM.id]: enforceValidFormConfiguration(EL_SEGUNDO_FORM),
++  [SONOMA_SPE_FORM.id]: enforceValidFormConfiguration(SONOMA_SPE_FORM),
+ };
+ 
+ export async function getFormConfig(
+diff --git a/data/forms/sonoma/form.ts b/data/forms/sonoma/form.ts
+new file mode 100644
+index 000000000..5880508e2
+--- /dev/null
++++ b/data/forms/sonoma/form.ts
+@@ -0,0 +1,190 @@
++import { RawFormType, RawPageType } from '../../../app/utils/forms/types';
++import { JURISDICTION_IDS } from '../../place';
++
++import { BEFORE_YOU_START_PAGE } from './pages/0.start';
++import { OVERVIEW_PAGE } from './pages/1.overview';
++import { ACTIVITIES_PAGE } from './pages/2.activities';
++import { CONTACTS_PAGE } from './pages/3.contacts';
++import { HEALTH_SAFETY_PAGE } from './pages/4.health-safety';
++import { DOCUMENTS_PAGE } from './pages/5.documents';
++import { REVIEW_PAGE } from './pages/6.review';
++
++const DONE_PAGE: RawPageType = {
++  id: 'done',
++  name: 'Done',
++  children: [
++    {
++      type: 'Box',
++      children: [
++        {
++          type: 'Title',
++          text: 'Application submitted successfully!',
++        },
++        {
++          type: 'Text',
++          text: 'Your application ([application id]) has been successfully submitted and will be reviewed by the following public agency, departments, and/or divisions:',
++          variant: 'description',
++        },
++      ],
++    },
++    {
++      type: 'Box',
++      children: [
++        {
++          type: 'Text',
++          text: 'Permit Sonoma',
++          variant: 'header',
++        },
++        {
++          type: 'List',
++          children: [
++            {
++              type: 'Text',
++              text: 'Planning / zoning',
++            },
++            {
++              type: 'Text',
++              text: 'Fire',
++            },
++            {
++              type: 'Text',
++              condition: 'containsAny(structures, ("temporary-structures", "large-tents"))',
++              text: 'Building',
++            },
++            {
++              type: 'Text',
++              text: 'Well & Septic',
++            },
++            {
++              type: 'Text',
++              condition: '"county-roads" in roadTypes',
++              text: 'Special right-of-way',
++            },
++          ],
++        },
++      ],
++    },
++    {
++      type: 'Box',
++      children: [
++        {
++          type: 'Text',
++          text: 'Other county departments',
++          variant: 'header',
++        },
++        {
++          type: 'List',
++          children: [
++            {
++              type: 'Text',
++              condition:
++                '((attendeesCount || 0) + (employeesCount || 0) + (volunteersCount || 0) + (vendorsCount || 0)) >= 50 or containsAny(eventLocationType, ("private-property", "county-roads")) and containsAny(foodBeverages, ("alcohol", "cannabis"))',
++              text: 'Sheriff',
++            },
++            {
++              type: 'Text',
++              condition:
++                'containsAny(foodBeverages, ("prepackaged-food", "onsite-food", "alcohol", "smoking", "cannabis"))',
++              text: 'Environmental Health in the Department of Health Services',
++            },
++            {
++              type: 'Text',
++              condition: '"animals" in eventCharacteristics',
++              text: 'Animal Services in the Department of Health Services',
++            },
++          ],
++        },
++      ],
++    },
++    {
++      type: 'Box',
++      condition: '"county-roads" in roadTypes',
++      children: [
++        {
++          type: 'Text',
++          text: 'California Highway Patrol (CHP)',
++          variant: 'header',
++        },
++      ],
++    },
++    {
++      type: 'Box',
++      children: [
++        {
++          type: 'Text',
++          text: 'Your event requires the following permits:',
++          variant: 'header',
++        },
++        {
++          type: 'List',
++          children: [
++            {
++              type: 'Text',
++              text: 'Special event permit with Permit Sonoma (this application)',
++            },
++            {
++              type: 'Text',
++              condition: 'containsAny(structures, ("temporary-structures", "large-tents"))',
++              text: 'Temporary structure permit with the Permit Sonoma Fire and Building divisions to be applied separately',
++            },
++            {
++              type: 'Text',
++              condition:
++                'eventFrequency == "recurring" or (eventFrequency == "one-time" and "food-beverage-sales" in eventCharacteristics)',
++              text: 'Community Event Organizer Permit with the Sonoma County Environmental Health division in the Department of Health Services',
++            },
++          ],
++        },
++      ],
++    },
++    {
++      type: 'Box',
++      children: [
++        {
++          type: 'Text',
++          text: 'Next steps',
++          variant: 'header',
++        },
++        {
++          type: 'Text',
++          text: 'A planner in Permit Sonoma will reach out to you about payment fees. After payment is successfully received, you will be notified within 30 calendar days about the status of your application.',
++          variant: 'description',
++        },
++        {
++          type: 'Text',
++          text: 'Your planner will let you know if a courtesy notice is required. This involves a posted notice on the property at least 10 calendar days in advance of the event and sent to neighboring properties to provide host contact information.',
++          variant: 'description',
++        },
++        {
++          type: 'Text',
++          text: 'If you have any questions, contact [PermitSonoma-SpecialEvents@sonomacounty.gov](mailto:PermitSonoma-SpecialEvents@sonomacounty.gov).',
++          variant: 'description',
++        },
++      ],
++    },
++  ],
++};
++
++export const FORM_CONFIG: RawFormType = {
++  id: 'special-events',
++  jurisdictionId: JURISDICTION_IDS.SONOMA_COUNTY,
++  name: 'Sonoma Special Events Application',
++  submission: { type: 'infilla' },
++  jurisdictionLogoUrl: '/images/organizationLogos/sonomaCounty.png',
++  jurisdictionName: 'Sonoma County',
++  jurisdictionHomeUrl: 'https://sonomacounty.ca.gov/',
++  addressesFieldId: 'propertyAddresses',
++  auth: { type: 'none' },
++  pages: [
++    BEFORE_YOU_START_PAGE,
++    OVERVIEW_PAGE,
++    ACTIVITIES_PAGE,
++    CONTACTS_PAGE,
++    HEALTH_SAFETY_PAGE,
++    DOCUMENTS_PAGE,
++    REVIEW_PAGE,
++  ],
++  donePage: DONE_PAGE,
++};
++
++export default FORM_CONFIG;
+diff --git a/data/forms/sonoma/pages/0.start.ts b/data/forms/sonoma/pages/0.start.ts
+new file mode 100644
+index 000000000..ebaeb2d69
+--- /dev/null
++++ b/data/forms/sonoma/pages/0.start.ts
+@@ -0,0 +1,52 @@
++import type { RawPageType } from '../../../../app/utils/forms/types';
++
++export const BEFORE_YOU_START_PAGE: RawPageType = {
++  id: 'before-you-start',
++  name: 'Before You Start',
++  hideInSummary: true,
++  children: [
++    {
++      type: 'Box',
++      variant: 'pageContainer',
++      children: [
++        {
++          type: 'Box',
++          children: [
++            {
++              type: 'Title',
++              text: 'Before You Start',
++            },
++          ],
++        },
++        {
++          type: 'Icon',
++          name: 'check',
++          text: 'Check eligibility',
++          description:
++            'State park or county regional park events are not within Permit Sonoma’s jurisdiction. For state parks, apply for a Special Event Permit from the [California Department of Parks and Recreation](https://www.parks.ca.gov/?page_id=26842). For county regional parks, apply for a Special Use Permit from [Sonoma County Regional Parks](https://parks.sonomacounty.ca.gov/visit/special-use-permits?utm_source=chatgpt.com).  If you are using a tent of 400+ sq ft or a temporary structure with both a raised floor and a roof for your event, you will separately need a [building permit](https://aca-prod.accela.com/sonomaco/Customization/common/apply.aspx) with Permit Sonoma.',
++        },
++        {
++          type: 'Icon',
++          name: 'calendar',
++          text: 'Submit early',
++          description:
++            'Apply at least 60 days before your event to allow time for public notice and hearings.',
++        },
++        {
++          type: 'Icon',
++          name: 'clock',
++          text: 'Time required',
++          description:
++            'If you have all materials ready, completing this application takes 20-30 minutes.',
++        },
++        {
++          type: 'Icon',
++          name: 'compass',
++          text: 'Navigation',
++          description:
++            'Use the left-side menu to visit any section of the application. Your work is saved automatically and you can sign back in or use your bookmark anytime. You’ll be able to submit once all required questions are answered and all documents are uploaded.',
++        },
++      ],
++    },
++  ],
++};
+diff --git a/data/forms/sonoma/pages/1.overview.ts b/data/forms/sonoma/pages/1.overview.ts
+new file mode 100644
+index 000000000..a833cd899
+--- /dev/null
++++ b/data/forms/sonoma/pages/1.overview.ts
+@@ -0,0 +1,185 @@
++import type { RawFormNode, RawPageType } from '../../../../app/utils/forms/types';
++
++const OVERVIEW_CONTENTS: RawFormNode[] = [
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Title',
++        text: 'Overview',
++      },
++      {
++        type: 'Text',
++        text: 'Provide general information about the event.',
++        variant: 'description',
++      },
++    ],
++  },
++  {
++    type: 'Input',
++    id: 'eventName',
++    text: "What's the event name?",
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++  {
++    type: 'SingleSelect',
++    id: 'eventCategory',
++    text: 'How would you characterize the event?',
++    choices: [
++      {
++        label: 'Entertainment event',
++        description: 'Concerts, festivals, fairs (community / cultural), carnivals',
++        value: 'entertainment',
++      },
++      {
++        label: 'Athletic event',
++        description:
++          'Marathons, bicycle races, charity run, trail rides, triathlons, rodeos, motorsports, aviation & marine competitions',
++        value: 'athletic',
++      },
++      {
++        label: 'Agriculture or winery event',
++        description: 'Farm tours, harvest festivals, winery tastings or release parties',
++        value: 'agriculture-winery',
++      },
++      {
++        label: 'Private event',
++        description: 'Weddings, private parties, galas, fundraisers, invite-only corporate events',
++        value: 'private',
++      },
++      {
++        label: 'Parade or assembly',
++        description: 'Parades, demonstrations, public marches, political rallies',
++        value: 'parade-assembly',
++      },
++      {
++        label: 'Market & vendor event',
++        description: "Farmer's markets, flea markets, street markets, craft fairs",
++        value: 'market-vendor',
++      },
++      {
++        label: 'Filming & media',
++        description:
++          'Film shoots for movies, commercials, or TV; media productions with sets or public impact',
++        value: 'filming-media',
++      },
++      {
++        label: 'Other event',
++        description: "For those that don't fit the above categories",
++        value: 'other',
++      },
++    ],
++  },
++  // TODO: Create a Date Picker and Time Picker component
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'When is the event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Submit your application at least 60 days before the start of the event for adequate processing time.',
++        variant: 'description',
++      },
++      {
++        type: 'TextArea',
++        id: 'eventDates',
++      },
++    ],
++  },
++  {
++    type: 'SingleSelect',
++    id: 'eventFrequency',
++    text: 'Is this a one-time or an annual event?',
++    choices: [
++      {
++        label: 'One-time',
++        value: 'one-time',
++      },
++      {
++        label: 'Recurring annually',
++        value: 'recurring',
++      },
++    ],
++  },
++  {
++    type: 'TextArea',
++    id: 'associatedPermitNumbers',
++    condition: 'eventFrequency == "recurring"',
++    text: 'Any permit number(s) associated with your recurring special event?',
++    description:
++      'This will make processing faster if you have this information. Special event permits are typically formatted as "SPEXX-XXXX" with "X" representing a number.',
++    validator: { optional: true },
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'Where will the event take place?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: "Select at least one choice. Note that state park or county regional park events are not within Permit Sonoma's jurisdiction. For state parks, apply for a Special Event Permit from the [California Department of Parks and Recreation](https://www.parks.ca.gov/?page_id=26842). For county regional parks, apply for a Special Use Permit from [Sonoma County Regional Parks](https://parks.sonomacounty.ca.gov/visit/special-use-permits?utm_source=chatgpt.com).",
++        variant: 'description',
++      },
++    ],
++  },
++  {
++    type: 'MultiSelect',
++    id: 'eventLocationType',
++    text: 'Event location type',
++    description: 'Select all that apply.',
++    choices: [
++      {
++        label: 'Private property or properties',
++        value: 'private-property',
++      },
++      {
++        label: 'A route on public or private roads only',
++        value: 'route-on-roads',
++      },
++    ],
++  },
++  {
++    type: 'AddressWithApnMulti',
++    id: 'propertyAddresses',
++    condition: '"private-property" in eventLocationType',
++    text: 'Private property address(es)',
++    apnDescriptor: 'APN',
++    apnPlaceholder: '001-234-567',
++  },
++  // TODO: Add correct gisInfo and Map component for tracing routes
++  {
++    type: 'GisInfo',
++    id: 'gisInfo',
++    condition: '"private-property" in eventLocationType',
++    text: 'json(propertyAddresses)',
++    dynamicText: true,
++  },
++  {
++    type: 'TextArea',
++    id: 'routeDescription',
++    condition: '"route-on-roads" in eventLocationType',
++    text: 'Route description',
++    description:
++      'Describe the route your event will take, including starting point, ending point, and any stops along the way.',
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++];
++
++export const OVERVIEW_PAGE: RawPageType = {
++  id: 'overview',
++  name: 'Overview',
++  children: [
++    {
++      type: 'Box',
++      variant: 'pageContainer',
++      children: OVERVIEW_CONTENTS,
++    },
++  ],
++};
+diff --git a/data/forms/sonoma/pages/2.activities.ts b/data/forms/sonoma/pages/2.activities.ts
+new file mode 100644
+index 000000000..cee27aa88
+--- /dev/null
++++ b/data/forms/sonoma/pages/2.activities.ts
+@@ -0,0 +1,355 @@
++import type { RawFormNode, RawPageType } from '../../../../app/utils/forms/types';
++
++const ACTIVITIES_CONTENTS: RawFormNode[] = [
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Title',
++        text: 'Activities',
++      },
++    ],
++  },
++  {
++    type: 'TextArea',
++    id: 'eventDescription',
++    text: 'Describe your event in detail.',
++    description:
++      'Describe the location setting in detail and the activities to be held. If at a commercial place of business, name that business. If you are using public right-of-way as part of your event, describe your clean up plan after the event ends.',
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'How many people will be at the event?',
++        variant: 'header',
++      },
++      {
++        type: 'Table',
++        children: [
++          {
++            type: 'TableRow',
++            variant: 'headerRow',
++            widths: ['70%', '30%'],
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableHeader',
++                text: 'Type',
++              },
++              {
++                type: 'Text',
++                variant: 'tableHeader',
++                text: 'Number',
++              },
++            ],
++          },
++          {
++            type: 'TableRow',
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableValue',
++                text: 'Attendees / participants',
++              },
++              {
++                type: 'Input',
++                id: 'attendeesCount',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++            ],
++          },
++          {
++            type: 'TableRow',
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableValue',
++                text: 'Employees / staff',
++              },
++              {
++                type: 'Input',
++                id: 'employeesCount',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++            ],
++          },
++          {
++            type: 'TableRow',
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableValue',
++                text: 'Volunteers',
++              },
++              {
++                type: 'Input',
++                id: 'volunteersCount',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++            ],
++          },
++          {
++            type: 'TableRow',
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableValue',
++                text: 'Vendors / contractors',
++              },
++              {
++                type: 'Input',
++                id: 'vendorsCount',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++            ],
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    condition: '"route-on-roads" in eventLocationType',
++    children: [
++      {
++        type: 'Text',
++        text: 'What roads will be used or closed for the event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Different agencies must be notified depending on the type of road. Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'roadTypes',
++        choices: [
++          {
++            label: 'County roads',
++            value: 'county-roads',
++          },
++          {
++            label: 'Private roads',
++            value: 'private-roads',
++          },
++          {
++            label: 'Highway',
++            value: 'highway',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Callout',
++    condition: '"highway" in roadTypes',
++    text: 'Reach out to Caltrans for any portions of the event within their jurisdiction.',
++  },
++  {
++    type: 'Box',
++    condition: '"county-roads" in roadTypes',
++    children: [
++      {
++        type: 'Text',
++        text: 'Which of the following apply to use of right-of-way for your event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'rightOfWayUse',
++        choices: [
++          {
++            label: 'Closure of lanes and/or roads for event use',
++            value: 'road-closure',
++          },
++          {
++            label: 'Use of owned, rented, leased, or borrowed vehicles by event staff',
++            value: 'vehicles',
++          },
++          {
++            label: 'Crossing of Sonoma-Marin Area Rail Transit (SMART) tracks or pedestrian paths',
++            value: 'smart-crossing',
++          },
++          {
++            label: 'None of the above apply',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'What food, beverages, or substances will be served, sold, or present at the event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice. Note that events that are serving hot food must have access to permanently plumbed running hot and cold water sinks plumbed to an on-site waste treatment system (WTS) or public sewer.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'foodBeverages',
++        choices: [
++          {
++            label: 'Pre-packaged food or food prepared off-site',
++            value: 'prepackaged-food',
++          },
++          {
++            label: 'Food prepared on-site',
++            value: 'onsite-food',
++          },
++          {
++            label: 'Alcohol',
++            value: 'alcohol',
++          },
++          {
++            label: 'Smoking',
++            value: 'smoking',
++          },
++          {
++            label: 'Cannabis',
++            value: 'cannabis',
++          },
++          {
++            label: 'None of the above apply',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'Which of the following apply to your event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'eventCharacteristics',
++        choices: [
++          {
++            label:
++              'Use of an existing structure for an unpermitted use (e.g., barn for a wedding venue)',
++            value: 'unpermitted-structure',
++          },
++          {
++            label: 'Sale of admission or ticket sales',
++            value: 'ticket-sales',
++          },
++          {
++            label: 'Sale of food and/or beverage',
++            value: 'food-beverage-sales',
++          },
++          {
++            label: 'Publicity through media and/or advertising',
++            value: 'publicity',
++          },
++          {
++            label: 'Amplified sound, music, or noise',
++            value: 'amplified-sound',
++          },
++          {
++            label: 'Overnight stays',
++            value: 'overnight-stays',
++          },
++          {
++            label: 'Pyrotechnic displays (e.g., fireworks)',
++            value: 'pyrotechnics',
++          },
++          {
++            label: 'Rest stops on private property',
++            value: 'rest-stops',
++          },
++          {
++            label: 'Use of drones in a public right-of-way',
++            value: 'drones',
++          },
++          {
++            label: 'Animals present',
++            value: 'animals',
++          },
++          {
++            label: 'None of the above apply',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Callout',
++    condition: '"unpermitted-structure" in eventCharacteristics',
++    text: 'Use of an existing structure for an unpermitted use requires a separate building permit.',
++  },
++  {
++    type: 'TextArea',
++    id: 'foodBeverageDetails',
++    condition:
++      'containsAny(eventCharacteristics, "food-beverage-sales") or containsAny(foodBeverages, ("prepackaged-food", "onsite-food", "alcohol"))',
++    text: 'Provide more detail on the specific food and beverages to be prepared onsite or sold?',
++    description:
++      'Provide details on the type of food, if food and beverage are for sale, and what vendor(s) or caterer(s) will be used.',
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++  {
++    type: 'TextArea',
++    id: 'animalsDescription',
++    condition: '"animals" in eventCharacteristics',
++    text: 'What animals will be involved with the event (e.g. horses, cattle, goats) and how will they be used in the event?',
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++  {
++    type: 'TextArea',
++    id: 'animalsOrigin',
++    condition: '"animals" in eventCharacteristics',
++    text: 'Where are the animal(s) coming from?',
++    description: 'Provide the name of the ranch or business and its address.',
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++];
++
++export const ACTIVITIES_PAGE: RawPageType = {
++  id: 'activities',
++  name: 'Activities',
++  children: [
++    {
++      type: 'Box',
++      variant: 'pageContainer',
++      children: ACTIVITIES_CONTENTS,
++    },
++  ],
++};
+diff --git a/data/forms/sonoma/pages/3.contacts.ts b/data/forms/sonoma/pages/3.contacts.ts
+new file mode 100644
+index 000000000..bad78b4b8
+--- /dev/null
++++ b/data/forms/sonoma/pages/3.contacts.ts
+@@ -0,0 +1,124 @@
++import type { RawFormNode, RawPageType } from '../../../../app/utils/forms/types';
++
++const CONTACTS_CONTENTS: RawFormNode[] = [
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Title',
++        text: 'Contacts',
++      },
++      {
++        type: 'Text',
++        text: 'Provide contact information for those involved in the event.',
++        variant: 'description',
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'Applicant contact information',
++        variant: 'header',
++      },
++      {
++        type: 'ContactInfo',
++        showCompanyField: true,
++        id: 'applicantContactInfo',
++      },
++    ],
++  },
++  {
++    type: 'SingleSelect',
++    id: 'ownerStatus',
++    condition: '"private-property" in eventLocationType',
++    text: 'Are you the owner of the property?',
++    choices: [
++      {
++        label: 'Yes',
++        value: 'owner',
++      },
++      {
++        label: 'No',
++        value: 'not-owner',
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    condition: 'ownerStatus == "not-owner"',
++    children: [
++      {
++        type: 'Text',
++        text: 'Property owner contact information',
++        variant: 'header',
++      },
++      {
++        type: 'MultiContactInfo',
++        id: 'propertyOwnerContacts',
++        text: 'Add Property Owner',
++        showCompanyField: true,
++        validator: { optional: false },
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    condition: '"animals" in eventCharacteristics',
++    children: [
++      {
++        type: 'Text',
++        text: 'Veterinarian contact information',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Any use of animals requires a veterinarian to be on site or within a 1 hour drive of the event.',
++        variant: 'description',
++      },
++      {
++        type: 'ContactInfo',
++        showCompanyField: true,
++        id: 'veterinarianContactInfo',
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'Additional contact(s)',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'These may be used as primary or billing contacts below. They are not added as collaborators on this form.',
++        variant: 'description',
++        options: { mb: '5' },
++      },
++      //TODO: Need to include "Role" as part of the fields in MultiContactInfo
++      {
++        type: 'MultiContactInfo',
++        id: 'additionalContacts',
++        text: 'Add Contact',
++        showCompanyField: true,
++        validator: { optional: true },
++      },
++    ],
++  },
++];
++
++export const CONTACTS_PAGE: RawPageType = {
++  id: 'contacts',
++  name: 'Contacts',
++  children: [
++    {
++      type: 'Box',
++      variant: 'pageContainer',
++      children: CONTACTS_CONTENTS,
++    },
++  ],
++};
+diff --git a/data/forms/sonoma/pages/4.health-safety.ts b/data/forms/sonoma/pages/4.health-safety.ts
+new file mode 100644
+index 000000000..d6188aa86
+--- /dev/null
++++ b/data/forms/sonoma/pages/4.health-safety.ts
+@@ -0,0 +1,435 @@
++import type { RawFormNode, RawPageType } from '../../../../app/utils/forms/types';
++
++const HEALTH_SAFETY_CONTENTS: RawFormNode[] = [
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Title',
++        text: 'Health & Safety',
++      },
++    ],
++  },
++  {
++    type: 'MultiSelect',
++    id: 'eventLocation',
++    text: 'Is the event indoors and/or outdoors?',
++    description: 'Select at least one choice.',
++    choices: [
++      {
++        label: 'Indoors',
++        value: 'indoors',
++      },
++      {
++        label: 'Outdoors',
++        value: 'outdoors',
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'What structures or equipment will be present at the event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'structures',
++        choices: [
++          {
++            label: 'Tents for overnight accommodation',
++            value: 'overnight-tents',
++          },
++          {
++            label: 'Tent(s) of 400+ sq ft',
++            value: 'large-tents',
++          },
++          {
++            label: 'Tables & chairs',
++            value: 'tables-chairs',
++          },
++          {
++            label: 'Temporary structure(s) with both a raised floor and a roof',
++            value: 'temporary-structures',
++          },
++          {
++            label: 'Seating / standing',
++            value: 'seating-standing',
++          },
++          {
++            label: 'Heating devices',
++            value: 'heating',
++          },
++          {
++            label: 'Portable, mounted lighting',
++            value: 'lighting',
++          },
++          {
++            label: 'Power generators',
++            value: 'generators',
++          },
++          {
++            label: 'None of the above apply',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Callout',
++    condition: '"large-tents" in structures',
++    text: 'A separate [tent permit](https://www.permitsonoma.com/divisions/firepreventionandhazmat/servicesandfees/operational/tentpermits) is required. Typically, your tent rental company will apply for this on your behalf.',
++  },
++  {
++    type: 'Input',
++    id: 'seatsCount',
++    condition: '"seating-standing" in structures',
++    text: 'How many seats will there be for seating / standing?',
++    validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++    options: { type: 'number' },
++    defaultValue: 'null',
++    placeholder: '0',
++  },
++  {
++    type: 'Input',
++    id: 'seatingHeight',
++    condition: '"seating-standing" in structures',
++    text: 'How many inches above grade is the seating / standing?',
++    rightUnit: 'in',
++    validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++    options: { type: 'number' },
++    defaultValue: 'null',
++    placeholder: '0',
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'How many facilities will be provided at the event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Any event that is commercial in nature (e.g. the property owner was paid for the venue), open to the public, or has employees working the event must have at least 5% of facilities be ADA-accessible.',
++        variant: 'description',
++      },
++      {
++        type: 'Table',
++        children: [
++          {
++            type: 'TableRow',
++            variant: 'headerRow',
++            widths: ['40%', '30%', '30%'],
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableHeader',
++                text: 'Facility',
++              },
++              {
++                type: 'Text',
++                variant: 'tableHeader',
++                text: 'Standard',
++              },
++              {
++                type: 'Text',
++                variant: 'tableHeader',
++                text: 'ADA-accessible',
++              },
++            ],
++          },
++          {
++            type: 'TableRow',
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableValue',
++                text: 'Temporary restroom stalls',
++              },
++              {
++                type: 'Input',
++                id: 'temporaryRestroomsStandard',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++              {
++                type: 'Input',
++                id: 'temporaryRestroomsAda',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++            ],
++          },
++          {
++            type: 'TableRow',
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableValue',
++                text: 'Permanent restroom stalls',
++              },
++              {
++                type: 'Input',
++                id: 'permanentRestroomsStandard',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++              {
++                type: 'Input',
++                id: 'permanentRestroomsAda',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++            ],
++          },
++          {
++            type: 'TableRow',
++            children: [
++              {
++                type: 'Text',
++                variant: 'tableValue',
++                text: 'Handwashing facilities',
++              },
++              {
++                type: 'Input',
++                id: 'handwashingStandard',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++              {
++                type: 'Input',
++                id: 'handwashingAda',
++                validator: { type: 'Integer', description: 'Expected a number', minimum: 0 },
++                options: { type: 'number' },
++                defaultValue: '0',
++                placeholder: '0',
++              },
++            ],
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    condition: '"onsite-food" in foodBeverages',
++    children: [
++      {
++        type: 'Text',
++        text: 'What equipment will be used to prepare food on-site?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'foodPreparationEquipment',
++        choices: [
++          {
++            label: 'Grill',
++            value: 'grill',
++          },
++          {
++            label: 'Deep fryer',
++            value: 'deep-fryer',
++          },
++          {
++            label: 'Range',
++            value: 'range',
++          },
++          {
++            label: 'Food trucks',
++            value: 'food-trucks',
++          },
++          {
++            label: 'None of the above',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'What methods of fire protection will be available for the event?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'fireProtection',
++        choices: [
++          {
++            label: 'Fire extinguishers',
++            value: 'fire-extinguishers',
++          },
++          {
++            label: 'Event staff are on a fire watch schedule',
++            value: 'fire-watch',
++          },
++          {
++            label: 'Fire department is on standby',
++            value: 'fire-dept-standby',
++          },
++          {
++            label: 'None of the above',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'What emergency medical services (EMS) will be available on-site?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'emergencyMedicalServices',
++        choices: [
++          {
++            label: 'Reliable method to contacting 911',
++            value: '911-access',
++          },
++          {
++            label: 'CPR-trained staff available',
++            value: 'cpr-staff',
++          },
++          {
++            label: '1st Aid Station with EMT present',
++            value: 'aid-emt',
++          },
++          {
++            label: '1st Aid Station with Paramedic present',
++            value: 'aid-paramedic',
++          },
++          {
++            label: '1st Aid Station with Physician present',
++            value: 'aid-physician',
++          },
++          {
++            label: 'Basic Life Support (BLS) Ambulance',
++            value: 'bls-ambulance',
++          },
++          {
++            label: 'Advanced Life Support (ALS) Ambulance',
++            value: 'als-ambulance',
++          },
++          {
++            label: 'Mobile first responder team(s)',
++            value: 'mobile-responder',
++          },
++          {
++            label: 'None of the above',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'Variable',
++    id: 'totalAttendees',
++    text: 'attendeesCount + employeesCount + volunteersCount + vendorsCount',
++    dynamicText: true,
++  },
++  {
++    type: 'TextArea',
++    id: 'securityTrafficControl',
++    condition: 'totalAttendees >= 500',
++    text: 'What security, traffic control, and/or crowd control measures will be in place, if any?',
++    description:
++      'Describe the event staff, private security, and/or law enforcement that will be present at the event.',
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'Do you plan to or have already requested support from California Highway Patrol (CHP) and/or Sheriff?',
++        variant: 'header',
++      },
++      {
++        type: 'Text',
++        text: 'Select at least one choice.',
++        variant: 'description',
++      },
++      {
++        type: 'MultiSelect',
++        id: 'lawEnforcementSupport',
++        choices: [
++          {
++            label: 'California Highway Patrol (typically for traffic control)',
++            value: 'chp',
++          },
++          {
++            label: 'Sheriff (typically for crowd control)',
++            value: 'sheriff',
++          },
++          {
++            label: 'No support requested or needed',
++            value: 'none',
++          },
++        ],
++      },
++    ],
++  },
++  {
++    type: 'TextArea',
++    id: 'evacuationPlan',
++    text: 'What is the evacuation plan (include routes) in the event of a natural disaster?',
++    description: 'Describe the evacuation routes and procedures in detail.',
++    validator: { type: 'String', minLength: 1, optional: false },
++  },
++];
++
++export const HEALTH_SAFETY_PAGE: RawPageType = {
++  id: 'health-safety',
++  name: 'Health & Safety',
++  children: [
++    {
++      type: 'Box',
++      variant: 'pageContainer',
++      children: HEALTH_SAFETY_CONTENTS,
++    },
++  ],
++};
+diff --git a/data/forms/sonoma/pages/5.documents.ts b/data/forms/sonoma/pages/5.documents.ts
+new file mode 100644
+index 000000000..7d9c722ae
+--- /dev/null
++++ b/data/forms/sonoma/pages/5.documents.ts
+@@ -0,0 +1,371 @@
++import type { RawFormNode, RawPageType } from '../../../../app/utils/forms/types';
++
++const DOCUMENTS_CONTENTS: RawFormNode[] = [
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Title',
++        text: 'Documents',
++      },
++      {
++        type: 'Text',
++        text: 'Upload all required documents for your special event application.',
++        variant: 'description',
++      },
++    ],
++  },
++  // Site plan
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'sitePlan',
++    condition: '"private-property" in eventLocationType',
++    text: 'Site plan',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload a site plan that shows:',
++        variant: 'description',
++      },
++      {
++        type: 'List',
++        children: [
++          {
++            type: 'Text',
++            text: 'The area of the event and property lines',
++          },
++          {
++            type: 'Text',
++            text: 'Existing and proposed structures. Make it clear which buildings/structures are to be used for the event. Show front, side and rear distances to property lines and between structures.',
++          },
++          {
++            type: 'Text',
++            text: 'Location of nearby access roads or easements, tents, restrooms, rest/pit stops, medical aid, cooking areas, designated smoking areas, electrical and plumbing access, and fire hydrants. Show the location of septic systems that are within 100 feet of the proposed event and/or parking areas',
++          },
++          {
++            type: 'Text',
++            text: 'Parking area(s) including the number of parking spots (including accessible parking spots) and vehicle loading zones',
++          },
++          {
++            type: 'Text',
++            text: 'Circulation paths including the accessible route of travel for wheelchair use and visually impaired',
++          },
++          {
++            type: 'Text',
++            text: 'Evacuation paths to the public right-of-way or an area of safe dispersal. An area of safe dispersal is defined as a space that can hold 5 sq ft per person and is 50 ft away from buildings',
++          },
++          {
++            type: 'Text',
++            text: 'Signage',
++          },
++        ],
++      },
++      {
++        type: 'Text',
++        text: 'If there is a staging with raised flooring, the site plan requires a licensed architect or engineer to provide structural and architectural justification for that staging. This includes how the structure complies with accessible route requirements and structural loading requirements.',
++        variant: 'description',
++      },
++      {
++        type: 'Text',
++        text: 'If the event is for filming and media purposes, the site plan must indicate affected roads, the approximate start and end locations, the staging areas, points of interest, and approximate locations of where security or crowd control will be.',
++        variant: 'description',
++      },
++    ],
++  },
++  // Seating and table plan
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'seatingTablePlan',
++    condition: '"tables-chairs" in structures or "seating-standing" in structures',
++    text: 'Seating and table plan',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload a plan, showing the approximate location of rows and tables at the site, accessible seating locations, exit locations, aisle ways, and any emergency lighting provided.',
++        variant: 'description',
++      },
++    ],
++  },
++  // Traffic control plans
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'trafficControlPlans',
++    condition: '"road-closure" in rightOfWayUse',
++    text: 'Traffic control plans (TCP)',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload detailed traffic control plans (TCP) for every affected road and intersection. List roads, intersections, and lanes affected by the event. For each affected road, provide close/open times and indicate signs used (including examples of what they will look like), sign placement, cone placement, changeable message board location, detour routes, and any other relevant information.',
++        variant: 'description',
++      },
++    ],
++  },
++  // Emergency contacts
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'emergencyContacts',
++    condition: '"route-on-roads" in eventLocationType',
++    text: 'Emergency contacts',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload your incident command communication chart and/or emergency contact list. If applicable, include your emergency medical services (EMS) and/or California Highway Patrol (CHP) contact information.',
++        variant: 'description',
++      },
++    ],
++  },
++  // Participant waiver
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'participantWaiver',
++    condition: 'eventCategory == "athletic" and "county-roads" in roadTypes',
++    text: 'Example participant waiver form',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload an example participant waiver or release form that is required of all event participants. This must include language indemnifying Sonoma County of any damages.',
++        variant: 'description',
++      },
++    ],
++  },
++  // Workers' compensation insurance
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'workersCompensationInsurance',
++    condition: '"county-roads" in roadTypes and employeesCount > 0',
++    text: "Workers' compensation insurance",
++    children: [
++      {
++        type: 'Text',
++        text: "Upload a current worker's compensation certificate of insurance (COI) for workers' compensation with statutory limits as required by the [California Labor Code Section 4453](https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=LAB&sectionNum=4453.). For further information, see [Insurance Requirements for Special Events Permits](https://permitsonoma.org/specialeventrequirements/insurancerequirements).",
++        variant: 'description',
++      },
++    ],
++  },
++  // Employers' liability insurance
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'employersLiabilityInsurance',
++    condition: '"county-roads" in roadTypes and employeesCount > 0',
++    text: "Employers' liability insurance",
++    children: [
++      {
++        type: 'Text',
++        text: "Upload a current employers' liability certificate of insurance (COI) for employers' liability with limits of $1,000,000 per accident, $1,000,000 disease per employee, and $1,000,000 disease per policy. For further information, see [Insurance Requirements for Special Events Permits](https://permitsonoma.org/specialeventrequirements/insurancerequirements).",
++        variant: 'description',
++      },
++    ],
++  },
++  // Commercial general liability
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'commercialGeneralLiability',
++    condition: '"county-roads" in roadTypes',
++    text: 'Commercial general liability',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload a current commercial general liability certificate of insurance (COI) with:',
++        variant: 'description',
++      },
++      {
++        type: 'List',
++        children: [
++          {
++            type: 'Text',
++            text: 'An additional insured endorsement for Sonoma County',
++          },
++          {
++            type: 'Text',
++            text: 'A primary and non-contributory basis endorsement',
++          },
++          {
++            type: 'Text',
++            text: 'The policy form language',
++          },
++        ],
++      },
++      {
++        type: 'Text',
++        text: 'Requirements:',
++        variant: 'description',
++      },
++      {
++        type: 'List',
++        children: [
++          {
++            type: 'Text',
++            text: 'The insurance should be no less broad than ISO form CG 00 01 with minimum limits of $1,000,000 per occurrence, $2,000,000 general aggregate, and $2,000,000 products / completed operations aggregate',
++          },
++          {
++            type: 'Text',
++            text: 'The insurance must be valid through the date(s) of the event',
++          },
++          {
++            type: 'Text',
++            text: 'There must be a disclosure note in the Description of Operations / Remarks section of the COI that states the deductible or self-insured retention. Disclose any deductible or self-insured retention in excess of $25,000 to be approved in advance by the County',
++          },
++          {
++            type: 'Text',
++            text: 'There must be an additional insured endorsement (ISO endorsement CG 20 26, ISO endorsement CG 20 12, or equivalent) for "County of Sonoma, its Officers and Employees" with "Attn: PRMD 2550 Ventura Ave., Santa Rosa, CA 95403"',
++          },
++          {
++            type: 'Text',
++            text: 'There must be an endorsement that shows that the policy must apply on a primary and non-contributory basis (ISO CG 20 01 Primary and Noncontributory)',
++          },
++          {
++            type: 'Text',
++            text: 'The policy must cover inter-insured suits between County and permittee and include a "separation of insureds" or "severability" clause which treats each insured separately',
++          },
++        ],
++      },
++      {
++        type: 'Text',
++        text: 'For further information, see [Insurance Requirements for Special Events Permits](https://permitsonoma.org/specialeventrequirements/insurancerequirements).',
++        variant: 'description',
++      },
++    ],
++  },
++  // Automobile liability insurance
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'automobileLiabilityInsurance',
++    condition: '"vehicles" in rightOfWayUse',
++    text: 'Automobile liability insurance',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload a current automobile liability certificate of insurance (COI) with a minimum limit of $1,000,000 combined single limit per accident. This must apply to all owned, hired, and non-owned vehicles that will be at the event. For further information, see [Insurance Requirements for Special Events Permits](https://permitsonoma.org/specialeventrequirements/insurancerequirements).',
++        variant: 'description',
++      },
++    ],
++  },
++  // Liquor liability insurance
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'liquorLiabilityInsurance',
++    condition: '"alcohol" in foodBeverages and "county-roads" in roadTypes',
++    text: 'Liquor liability insurance',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload a current liquor liability insurance certificate of insurance (COI) with a minimum limit of $1,000,000 for each common cause or occurrence and $1,000,000 in aggregate. There must be a disclosure note in the Description of Operations / Remarks section of the COI that states the deductible or self-insured retention. Disclose any deductible or self-insured retention in excess of $25,000 to be approved in advance by the County. For further information, see [Insurance Requirements for Special Events Permits](https://permitsonoma.org/specialeventrequirements/insurancerequirements).',
++        variant: 'description',
++      },
++    ],
++  },
++  // Professional liability insurance
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'professionalLiabilityInsurance',
++    condition:
++      '"county-roads" in roadTypes and containsAny(emergencyMedicalServices, ("aid-emt", "aid-paramedic", "aid-physician", "bls-ambulance", "als-ambulance", "mobile-responder"))',
++    text: 'Professional liability insurance',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload a current professional liability certificate of insurance (COI) with a minimum limit of $1,000,000 per medical incident and $1,000,000 in aggregate. For further information, see [Insurance Requirements for Special Events Permits](https://permitsonoma.org/specialeventrequirements/insurancerequirements).',
++        variant: 'description',
++      },
++    ],
++  },
++  // SMART right-of-entry permit
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'smartRightOfEntry',
++    condition: '"smart-crossing" in rightOfWayUse',
++    text: 'SMART right-of-entry permit',
++    children: [
++      {
++        type: 'Text',
++        text: 'Any crossing of Sonoma-Marin Area Rail Transit (SMART) tracks requires a SMART right-of-entry permit. Upload either (1) the permit, (2) a completed SMART permit application, or (3) a letter from SMART stating that they are in progress with processing the SMART permit or they do not need a SMART permit for their purposes.',
++        variant: 'description',
++      },
++    ],
++  },
++  // FAA Remote Pilot Certificate
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'faaRemotePilotCertificate',
++    condition: '"drones" in eventCharacteristics and "county-roads" in roadTypes',
++    text: 'FAA Remote Pilot Certificate',
++    children: [
++      {
++        type: 'Text',
++        text: 'Flying a drone requires obtaining a [FAA Remote Pilot Certificate](https://www.faa.gov/uas/commercial_operators/become_a_drone_pilot). This certificate demonstrates that you understand the regulations, operating requirements, and procedures for safely flying drones. Upload proof of your FAA Remote Pilot Certificate.',
++        variant: 'description',
++      },
++    ],
++  },
++  // TODO: Add the correct condition and input type
++  // Landowner's statement of compliance
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'landownerStatementCompliance',
++    condition: 'gisInfo.williamsonAct.length > 0',
++    text: "Landowner's statement of compliance",
++    children: [
++      {
++        type: 'Text',
++        text: "For each Williamson Act parcel, complete and upload a [PJR-049 Landowner's Statement of Compliance with the Williamson Act](https://permitsonoma.org/Microsites/Permit%20Sonoma/Documents/Instructions%20and%20Forms/_PJR%20Project%20Review/PJR-049-Landowners-Statement-of-Compliance-with-the-Williamson-Act.pdf). Landowners must demonstrate the contracted land is in compliance with the Williamson Act contract, and that the proposed development or use will comply with the contract and the County's [Uniform Rules for Agricultural Preserves and Farmland Security Zones](https://permitsonoma.org/Microsites/Permit%20Sonoma/Documents/Archive/Planning/_Documents/Uniform%20Rules%20for%20Agricultural%20Preserves%20and%20Farmland%20Security%20Zones.pdf).",
++        variant: 'description',
++      },
++    ],
++  },
++  // Food vendor permits
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'foodVendorPermits',
++    condition: '"food-beverage-sales" in eventCharacteristics',
++    text: 'Food vendor permit(s)',
++    children: [
++      {
++        type: 'Text',
++        text: 'Upload food vendor permit(s) for all vendors who plan to service food at the event. If the vendor is registered outside of the County, provide their relevant permit from their jurisdiction.',
++        variant: 'description',
++      },
++    ],
++  },
++  // Public safety plan
++  {
++    type: 'DocumentUpload',
++    renderForStatuses: ['visibleComplete', 'visibleIncomplete', 'hiddenIncomplete'],
++    id: 'publicSafetyPlan',
++    text: 'Public safety plan',
++    validator: { optional: true },
++    children: [
++      {
++        type: 'Text',
++        text: 'Large events will likely require a formal public safety plan. The public safety plan must clearly outline how participants, staff, and the public will be kept safe during the event. It should include a site or route map with entrances, exits, and emergency access points; details on medical and first aid provisions; fire safety measures; and the approach to security and crowd management. The plan should also describe traffic and parking arrangements, communication methods for staff and attendees in an emergency, and evacuation procedures. Finally, it must identify the designated on-site safety contact and explain coordination with police, fire, and EMS to ensure the event is safe and compliant before a permit is issued.',
++        variant: 'description',
++      },
++    ],
++  },
++];
++
++export const DOCUMENTS_PAGE: RawPageType = {
++  id: 'documents',
++  name: 'Documents',
++  children: [
++    {
++      type: 'Box',
++      variant: 'pageContainer',
++      children: DOCUMENTS_CONTENTS,
++    },
++  ],
++};
+diff --git a/data/forms/sonoma/pages/6.review.ts b/data/forms/sonoma/pages/6.review.ts
+new file mode 100644
+index 000000000..d433a857b
+--- /dev/null
++++ b/data/forms/sonoma/pages/6.review.ts
+@@ -0,0 +1,104 @@
++import type { RawFormNode, RawPageType } from '../../../../app/utils/forms/types';
++
++const REVIEW_CONTENT: RawFormNode[] = [
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Title',
++        text: 'Review & Submit',
++      },
++      {
++        type: 'Text',
++        text: 'Confirm your information and agree to all disclosures to submit your application.',
++        variant: 'description',
++      },
++    ],
++  },
++  {
++    type: 'FormSummary',
++    skipPages: ['review'],
++  },
++  {
++    type: 'Box',
++    children: [
++      {
++        type: 'Text',
++        text: 'Signatures and affidavits',
++        variant: 'header',
++      },
++      {
++        type: 'Checkbox',
++        id: 'applicantAffidavit',
++        children: [
++          {
++            type: 'Text',
++            text: "Applicant's affidavit",
++            variant: 'value',
++          },
++          {
++            type: 'Text',
++            text: 'I certify that the information provided in this application is true and correct to the best of my knowledge. I understand that any false statements or misrepresentations may result in denial or revocation of the permit.',
++            variant: 'checkboxDescription',
++          },
++        ],
++      },
++      {
++        type: 'Checkbox',
++        id: 'indemnificationAgreement',
++        children: [
++          {
++            type: 'Text',
++            text: 'Indemnification agreement',
++            variant: 'value',
++          },
++          {
++            type: 'Text',
++            text: 'I agree to indemnify, defend, and hold harmless Sonoma County, its officers, agents, and employees from any and all claims, demands, losses, damages, costs, expenses, and liability arising out of or in connection with this special event.',
++            variant: 'checkboxDescription',
++          },
++        ],
++      },
++      {
++        type: 'Checkbox',
++        id: 'encroachmentIndemnification',
++        condition: '"county-roads" in roadTypes',
++        children: [
++          {
++            type: 'Text',
++            text: 'Encroachment indemnification agreement',
++            variant: 'value',
++          },
++          {
++            type: 'Text',
++            text: "I agree to accept all responsibility for loss or damage to any person or entity and to indemnify, hold harmless, and defend and release the County of Sonoma, its agents and employees of and against any and all liability, actions, claims, damages, costs or expenses which may be asserted by any person or entity, including myself, that arise out of, or are connected to, or relate to the activities anticipated by this Special Event Permit. I agree to maintain event insurance, in adherence with County of Sonoma's [Insurance Requirements for Special Events](https://permitsonoma.org/specialeventrequirements/insurancerequirements), through the entirety of the event date(s). I agree that the special event will be conducted in accordance with and subject to the terms and conditions of this permit, the State Vehicle Code, the State Streets and Highways Code, and is subject to inspection and approval by the Permit and Resource Management Department.",
++            variant: 'checkboxDescription',
++          },
++        ],
++      },
++      {
++        type: 'Checkbox',
++        id: 'legalTermsOfUse',
++        children: [
++          {
++            type: 'Text',
++            text: "I agree to Infilla's [Terms of Use](https://www.infilla.com/termsofuse). This service submits your application to the jurisdiction on your behalf.",
++            variant: 'checkboxDescription',
++          },
++        ],
++      },
++    ],
++  },
++];
++
++export const REVIEW_PAGE: RawPageType = {
++  id: 'review',
++  name: 'Review & Submit',
++  children: [
++    {
++      type: 'Box',
++      variant: 'pageContainer',
++      children: REVIEW_CONTENT,
++    },
++  ],
++};

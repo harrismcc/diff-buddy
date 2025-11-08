@@ -1,10 +1,11 @@
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { Endpoints } from "@octokit/types";
 
-type PullRequest = Endpoints["GET /repos/{owner}/{repo}/pulls/{pull_number}"]["response"]["data"];
+type PullRequest =
+	Endpoints["GET /repos/{owner}/{repo}/pulls/{pull_number}"]["response"]["data"];
 
 interface PRSidebarProps {
 	pr: PullRequest;
@@ -25,33 +26,20 @@ const SidebarSection = ({
 	expandedSections,
 	toggleSection,
 }: SidebarSectionProps) => (
-	<div className="border-b">
+	<div>
 		<button
 			type="button"
 			onClick={() => toggleSection(section)}
-			className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
+			className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30 transition-colors"
 		>
-			<div className="flex items-center gap-2">
-				<ChevronDown
-					className={`size-4 transition-transform ${
-						expandedSections[section] ? "" : "-rotate-90"
-					}`}
-				/>
-				<span className="font-medium text-sm">{title}</span>
-			</div>
-			<button
-				type="button"
-				onClick={(e) => {
-					e.stopPropagation();
-				}}
-				className="text-muted-foreground hover:text-foreground"
-			>
-				<X className="size-4" />
-			</button>
+			<ChevronDown
+				className={`size-4 transition-transform ${
+					expandedSections[section] ? "" : "-rotate-90"
+				}`}
+			/>
+			<span className="font-medium text-sm">{title}</span>
 		</button>
-		{expandedSections[section] && (
-			<div className="px-4 py-3 bg-muted/30">{children}</div>
-		)}
+		{expandedSections[section] && <div className="px-4 py-3">{children}</div>}
 	</div>
 );
 
@@ -79,7 +67,7 @@ export const PRSidebar = ({ pr }: PRSidebarProps) => {
 	};
 
 	return (
-		<div className="w-64 border-l bg-background">
+		<div className="w-64">
 			{/* Reviewers Section */}
 			<SidebarSection
 				title="Reviewers"
@@ -105,9 +93,7 @@ export const PRSidebar = ({ pr }: PRSidebarProps) => {
 						))}
 					</div>
 				) : (
-					<div className="text-sm text-muted-foreground">
-						No reviewers
-					</div>
+					<div className="text-sm text-muted-foreground">No reviewers</div>
 				)}
 			</SidebarSection>
 
@@ -140,9 +126,7 @@ export const PRSidebar = ({ pr }: PRSidebarProps) => {
 							})}
 					</div>
 				) : (
-					<div className="text-sm text-muted-foreground">
-						No labels
-					</div>
+					<div className="text-sm text-muted-foreground">No labels</div>
 				)}
 			</SidebarSection>
 

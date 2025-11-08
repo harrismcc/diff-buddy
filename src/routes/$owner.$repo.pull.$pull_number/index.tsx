@@ -1,33 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MarkdownViewer } from "@/components/MarkdownViewer";
+import { getFileContent } from "@/serverActions/getFileContents";
 import { request } from "@octokit/request";
-import { PRHeader } from "@/components/PRHeader";
+import { generateSummary } from "@/serverActions/generateSummary";
+import DiffViewer from "@/components/DiffViewer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/$owner/$repo/pull/$pull_number/")({
+	component: BlogPage,
 	loader: async ({ params: { owner, repo, pull_number } }) => {
-		const result = await request(
-			"GET /repos/{owner}/{repo}/pulls/{pull_number}",
-			{
-				owner,
-				repo,
-				pull_number: +pull_number,
-				headers: {
-					authorization: `Bearer ***REMOVED_GITHUB_TOKEN***`,
-					"X-GitHub-Api-Version": "2022-11-28",
-				},
-			},
-		);
+		try {
+			const summaryText = await getFileContent({
+				data: { path: `data/${owner}-${repo}-${pull_number}.md` },
+			});
+			const diffText = await getFileContent({
+				data: { path: `data/${owner}-${repo}-${pull_number}.diff` },
+			});
+			return { summary: summaryText, diff: diffText };
+		} catch (error) {
+			const result = await generateSummary({
+				data: { owner, repo, pull_number },
+			});
 
-		return result.data;
+			return result;
+		}
 	},
-	component: RouteComponent,
 });
 
-function RouteComponent() {
+function BlogPage() {
 	const data = Route.useLoaderData();
 	return (
-		<div>
-			<PRHeader pr={data} />
-			{data.title}
-		</div>
+		<Tabs defaultValue="summary">
+			<TabsList className="mx-auto w-full">
+				<TabsTrigger value="summary">Summary</TabsTrigger>
+				<TabsTrigger value="diff">Diff</TabsTrigger>
+			</TabsList>
+			<TabsContent value="summary">
+				<MarkdownViewer content={data.summary} />
+			</TabsContent>
+			<TabsContent value="diff">
+				<DiffViewer diff={data.diff} />
+			</TabsContent>
+		</Tabs>
 	);
 }
