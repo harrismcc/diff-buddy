@@ -1,9 +1,13 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { request } from "@octokit/request";
 import { PRHeader } from "@/components/PRHeader";
+import { $getGithubToken } from "@/serverActions/getGithubToken";
 
-export const Route = createFileRoute("/_authenticated/$owner/$repo/pull/$pull_number")({
+export const Route = createFileRoute(
+	"/_authenticated/$owner/$repo/pull/$pull_number",
+)({
 	loader: async ({ params: { owner, repo, pull_number } }) => {
+		const githubToken = await $getGithubToken();
 		const result = await request(
 			"GET /repos/{owner}/{repo}/pulls/{pull_number}",
 			{
@@ -11,11 +15,11 @@ export const Route = createFileRoute("/_authenticated/$owner/$repo/pull/$pull_nu
 				repo,
 				pull_number: +pull_number,
 				headers: {
-					authorization: `Bearer ***REMOVED_GITHUB_TOKEN***`,
+					authorization: `Bearer ${githubToken}`,
 					"X-GitHub-Api-Version": "2022-11-28",
 				},
 			},
-		)
+		);
 
 		return result.data;
 	},
@@ -31,5 +35,5 @@ function RouteComponent() {
 				<Outlet />
 			</div>
 		</div>
-	)
+	);
 }

@@ -18,8 +18,9 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedPrPrNumberRouteRouteImport } from './routes/_authenticated/pr.$prNumber/route'
 import { Route as AuthenticatedPrPrNumberIndexRouteImport } from './routes/_authenticated/pr.$prNumber/index'
 import { Route as AuthenticatedPrPrNumberDiffRouteImport } from './routes/_authenticated/pr.$prNumber/diff'
-import { Route as AuthenticatedOwnerRepoPullPull_numberRouteRouteImport } from './routes/_authenticated/$owner.$repo.pull.$pull_number/route'
-import { Route as AuthenticatedOwnerRepoPullPull_numberIndexRouteImport } from './routes/_authenticated/$owner.$repo.pull.$pull_number/index'
+import { Route as AuthenticatedOwnerRepoPullsRouteImport } from './routes/_authenticated/$owner.$repo/pulls'
+import { Route as AuthenticatedOwnerRepoPullPull_numberRouteRouteImport } from './routes/_authenticated/$owner.$repo/pull.$pull_number/route'
+import { Route as AuthenticatedOwnerRepoPullPull_numberIndexRouteImport } from './routes/_authenticated/$owner.$repo/pull.$pull_number/index'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -68,6 +69,12 @@ const AuthenticatedPrPrNumberDiffRoute =
     path: '/diff',
     getParentRoute: () => AuthenticatedPrPrNumberRouteRoute,
   } as any)
+const AuthenticatedOwnerRepoPullsRoute =
+  AuthenticatedOwnerRepoPullsRouteImport.update({
+    id: '/$owner/$repo/pulls',
+    path: '/$owner/$repo/pulls',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOwnerRepoPullPull_numberRouteRoute =
   AuthenticatedOwnerRepoPullPull_numberRouteRouteImport.update({
     id: '/$owner/$repo/pull/$pull_number',
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/auth/test': typeof AuthTestRoute
   '/pr/$prNumber': typeof AuthenticatedPrPrNumberRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/$owner/$repo/pulls': typeof AuthenticatedOwnerRepoPullsRoute
   '/pr/$prNumber/diff': typeof AuthenticatedPrPrNumberDiffRoute
   '/pr/$prNumber/': typeof AuthenticatedPrPrNumberIndexRoute
   '/$owner/$repo/pull/$pull_number': typeof AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren
@@ -99,6 +107,7 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/test': typeof AuthTestRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/$owner/$repo/pulls': typeof AuthenticatedOwnerRepoPullsRoute
   '/pr/$prNumber/diff': typeof AuthenticatedPrPrNumberDiffRoute
   '/pr/$prNumber': typeof AuthenticatedPrPrNumberIndexRoute
   '/$owner/$repo/pull/$pull_number': typeof AuthenticatedOwnerRepoPullPull_numberIndexRoute
@@ -112,6 +121,7 @@ export interface FileRoutesById {
   '/auth/test': typeof AuthTestRoute
   '/_authenticated/pr/$prNumber': typeof AuthenticatedPrPrNumberRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_authenticated/$owner/$repo/pulls': typeof AuthenticatedOwnerRepoPullsRoute
   '/_authenticated/pr/$prNumber/diff': typeof AuthenticatedPrPrNumberDiffRoute
   '/_authenticated/pr/$prNumber/': typeof AuthenticatedPrPrNumberIndexRoute
   '/_authenticated/$owner/$repo/pull/$pull_number': typeof AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth/test'
     | '/pr/$prNumber'
     | '/api/auth/$'
+    | '/$owner/$repo/pulls'
     | '/pr/$prNumber/diff'
     | '/pr/$prNumber/'
     | '/$owner/$repo/pull/$pull_number'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/test'
     | '/api/auth/$'
+    | '/$owner/$repo/pulls'
     | '/pr/$prNumber/diff'
     | '/pr/$prNumber'
     | '/$owner/$repo/pull/$pull_number'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
     | '/auth/test'
     | '/_authenticated/pr/$prNumber'
     | '/api/auth/$'
+    | '/_authenticated/$owner/$repo/pulls'
     | '/_authenticated/pr/$prNumber/diff'
     | '/_authenticated/pr/$prNumber/'
     | '/_authenticated/$owner/$repo/pull/$pull_number'
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPrPrNumberDiffRouteImport
       parentRoute: typeof AuthenticatedPrPrNumberRouteRoute
     }
+    '/_authenticated/$owner/$repo/pulls': {
+      id: '/_authenticated/$owner/$repo/pulls'
+      path: '/$owner/$repo/pulls'
+      fullPath: '/$owner/$repo/pulls'
+      preLoaderRoute: typeof AuthenticatedOwnerRepoPullsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/$owner/$repo/pull/$pull_number': {
       id: '/_authenticated/$owner/$repo/pull/$pull_number'
       path: '/$owner/$repo/pull/$pull_number'
@@ -279,6 +299,7 @@ const AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedTestRoute: typeof AuthenticatedTestRoute
   AuthenticatedPrPrNumberRouteRoute: typeof AuthenticatedPrPrNumberRouteRouteWithChildren
+  AuthenticatedOwnerRepoPullsRoute: typeof AuthenticatedOwnerRepoPullsRoute
   AuthenticatedOwnerRepoPullPull_numberRouteRoute: typeof AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren
 }
 
@@ -286,6 +307,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTestRoute: AuthenticatedTestRoute,
   AuthenticatedPrPrNumberRouteRoute:
     AuthenticatedPrPrNumberRouteRouteWithChildren,
+  AuthenticatedOwnerRepoPullsRoute: AuthenticatedOwnerRepoPullsRoute,
   AuthenticatedOwnerRepoPullPull_numberRouteRoute:
     AuthenticatedOwnerRepoPullPull_numberRouteRouteWithChildren,
 }

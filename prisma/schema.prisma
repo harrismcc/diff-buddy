@@ -14,15 +14,16 @@ model Todo {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id                        String    @id
+  name                      String
+  email                     String
+  emailVerified             Boolean   @default(false)
+  image                     String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @default(now()) @updatedAt
+  sessions                  Session[]
+  accounts                  Account[]
+  githubPersonalAccessToken String?
 
   @@unique([email])
   @@map("user")
@@ -71,4 +72,14 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("verification")
+}
+
+model PullRequest {
+  owner   String
+  repo    String
+  number  Int
+  diff    String?
+  summary String?
+
+  @@id([owner, repo, number])
 }

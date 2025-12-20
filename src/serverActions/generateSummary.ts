@@ -1,9 +1,9 @@
-import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { createServerFn } from "@tanstack/react-start";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { request } from "@octokit/request";
 import { generateText } from "ai";
+import { prisma } from "@/db";
+import { $getGithubToken } from "./getGithubToken";
 
 export const getPrompt = (diff: string) => {
 	return `Turn the following PR into a "blog post" using markdown. Group related sections of the diff using section headings, display them in codeblocks, and give short explanations of what's going on. You do not need to limit yourself to only 1 diff/codeblock per heading — you should group multiple changes across files if they make sense together. Be absolutely sure that you include all of the changes from the diff, across all of the files!
@@ -49,9 +49,10 @@ ${diff}`;
 
 export const generateSummary = createServerFn()
 	.inputValidator(
-		(data: { owner: string; repo: string; pull_number: string }) => data,
+		(data: { owner: string; repo: string; pull_number: number }) => data,
 	)
 	.handler(async ({ data: { owner, repo, pull_number } }) => {
+		const githubToken = await $getGithubToken();
 		const result = await request(
 			"GET /repos/{owner}/{repo}/pulls/{pull_number}",
 			{
@@ -59,7 +60,7 @@ export const generateSummary = createServerFn()
 				repo,
 				pull_number: +pull_number,
 				headers: {
-					authorization: `Bearer ***REMOVED_GITHUB_TOKEN***`,
+					authorization: `Bearer ${githubToken}`,
 					"X-GitHub-Api-Version": "2022-11-28",
 					Accept: "application/vnd.github.v3.diff",
 				},
@@ -67,14 +68,6 @@ export const generateSummary = createServerFn()
 		);
 
 		const diff = result.data;
-
-		console.log(diff);
-		// Write the diff file to data
-		const diffFilePath = join(
-			process.cwd(),
-			`data/${owner}-${repo}-${pull_number}.diff`,
-		);
-		await writeFile(diffFilePath, diff as any);
 
 		const cleanedDiff = (diff as any as string).replaceAll(
 			"```",
@@ -86,7 +79,7 @@ export const generateSummary = createServerFn()
 		});
 
 		const { text } = await generateText({
-			model: openrouter("google/gemini-2.5-flash"),
+			model: openrouter("anthropic/claude-haiku-4.5"),
 			prompt: getPrompt(cleanedDiff as any as string),
 		});
 
@@ -95,12 +88,27 @@ export const generateSummary = createServerFn()
 			.replaceAll("```", "````")
 			.replaceAll("<diff-buddy-code-block>", "```");
 
-		// Write the markdown file to data
-		const filePath = join(
-			process.cwd(),
-			`data/${owner}-${repo}-${pull_number}.md`,
-		);
-		await writeFile(filePath, cleanedText);
+		// Upsert the PR row
+		await prisma.pullRequest.upsert({
+			where: {
+				owner_repo_number: {
+					owner: owner,
+					repo: repo,
+					number: +pull_number,
+				},
+			},
+			update: {
+				diff: diff as any as string,
+				summary: cleanedText,
+			},
+			create: {
+				owner: owner,
+				repo: repo,
+				number: +pull_number,
+				diff: diff as any as string,
+				summary: cleanedText,
+			},
+		});
 
 		return { summary: cleanedText, diff: diff as any };
 	});

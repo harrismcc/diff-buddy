@@ -1,8 +1,8 @@
-import { $getUser } from "@/lib/auth/functions";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { $getUser } from "@/lib/auth/functions";
 
 export const Route = createFileRoute("/_authenticated")({
-	beforeLoad: async ({ context }) => {
+	beforeLoad: async () => {
 		const user = $getUser();
 		if (!user) {
 			throw redirect({ to: "/auth/login" });
