@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
 import { Github } from "lucide-react";
@@ -46,6 +46,11 @@ function RouteComponent() {
 					>
 						<Github />
 						Continue with GitHub
+					</Button>
+					<Button asChild className="w-full" size="lg" variant="link">
+						<Link to="/auth/github-app">
+							Install the GitHub App for your org
+						</Link>
 					</Button>
 				</div>
 			</div>

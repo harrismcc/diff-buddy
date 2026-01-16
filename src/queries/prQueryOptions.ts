@@ -12,15 +12,20 @@ export const getPrQueryOptions = (
 			data: { owner, repo, pull_number },
 		});
 
+		if (pr?.summaryStatus === "generating") {
+			return { status: "generating" };
+		}
+
 		if (!pr || !pr.diff || !pr.summary) {
 			const result = await generateSummary({
-				data: { owner, repo, pull_number },
+				data: { owner, repo, pull_number, wait: false },
 			});
 
 			return result;
 		}
 
 		return {
+			status: "ready",
 			summary: pr.summary,
 			diff: pr.diff,
 		};

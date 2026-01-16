@@ -9,19 +9,20 @@ export const $getGithubToken = createServerFn().handler(async () => {
 		throw new Error("User not found");
 	}
 
-	const userRow = await prisma.user.findFirst({
+	const account = await prisma.account.findFirst({
 		where: {
-			id: user.id,
+			userId: user.id,
+			providerId: "github",
 		},
 	});
 
-	if (!userRow) {
-		throw new Error("User row not found");
+	if (!account) {
+		throw new Error("No GitHub account found");
 	}
 
-	if (!userRow.githubPersonalAccessToken) {
-		throw new Error("No Github Personal Access Token found");
+	if (!account.accessToken) {
+		throw new Error("No GitHub OAuth access token found");
 	}
 
-	return userRow.githubPersonalAccessToken;
+	return account.accessToken;
 });

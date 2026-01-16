@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthTestRouteImport } from './routes/auth/test'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthGithubAppRouteImport } from './routes/auth/github-app'
 import { Route as AuthenticatedTestRouteImport } from './routes/_authenticated/test'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedPrPrNumberRouteRouteImport } from './routes/_authenticated/pr.$prNumber/route'
@@ -39,6 +40,11 @@ const AuthTestRoute = AuthTestRouteImport.update({
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthGithubAppRoute = AuthGithubAppRouteImport.update({
+  id: '/auth/github-app',
+  path: '/auth/github-app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTestRoute = AuthenticatedTestRouteImport.update({
@@ -91,6 +97,7 @@ const AuthenticatedOwnerRepoPullPull_numberIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/test': typeof AuthenticatedTestRoute
+  '/auth/github-app': typeof AuthGithubAppRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/test': typeof AuthTestRoute
   '/pr/$prNumber': typeof AuthenticatedPrPrNumberRouteRouteWithChildren
@@ -104,6 +111,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/test': typeof AuthenticatedTestRoute
+  '/auth/github-app': typeof AuthGithubAppRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/test': typeof AuthTestRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/test': typeof AuthenticatedTestRoute
+  '/auth/github-app': typeof AuthGithubAppRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/test': typeof AuthTestRoute
   '/_authenticated/pr/$prNumber': typeof AuthenticatedPrPrNumberRouteRouteWithChildren
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/test'
+    | '/auth/github-app'
     | '/auth/login'
     | '/auth/test'
     | '/pr/$prNumber'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/test'
+    | '/auth/github-app'
     | '/auth/login'
     | '/auth/test'
     | '/api/auth/$'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/test'
+    | '/auth/github-app'
     | '/auth/login'
     | '/auth/test'
     | '/_authenticated/pr/$prNumber'
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthGithubAppRoute: typeof AuthGithubAppRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthTestRoute: typeof AuthTestRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/github-app': {
+      id: '/auth/github-app'
+      path: '/auth/github-app'
+      fullPath: '/auth/github-app'
+      preLoaderRoute: typeof AuthGithubAppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/test': {
@@ -318,6 +338,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthGithubAppRoute: AuthGithubAppRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthTestRoute: AuthTestRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -14,16 +14,15 @@ model Todo {
 }
 
 model User {
-  id                        String    @id
-  name                      String
-  email                     String
-  emailVerified             Boolean   @default(false)
-  image                     String?
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @default(now()) @updatedAt
-  sessions                  Session[]
-  accounts                  Account[]
-  githubPersonalAccessToken String?
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  sessions      Session[]
+  accounts      Account[]
 
   @@unique([email])
   @@map("user")
@@ -75,11 +74,19 @@ model Verification {
 }
 
 model PullRequest {
-  owner   String
-  repo    String
-  number  Int
-  diff    String?
-  summary String?
+  owner         String
+  repo          String
+  number        Int
+  diff          String?
+  summary       String?
+  summaryStatus SummaryStatus @default(idle)
 
   @@id([owner, repo, number])
+}
+
+enum SummaryStatus {
+  idle
+  generating
+  ready
+  error
 }

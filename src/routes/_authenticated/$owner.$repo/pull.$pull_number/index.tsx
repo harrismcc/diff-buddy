@@ -42,14 +42,17 @@ export const Route = createFileRoute(
 function BlogPage() {
 	// const data = Route.useLoaderData();
 	const { owner, repo, pull_number } = Route.useParams();
-	const { data, isLoading } = useQuery(
-		getPrQueryOptions(owner, repo, +pull_number),
-	);
+	const { data, isLoading } = useQuery({
+		...getPrQueryOptions(owner, repo, +pull_number),
+		refetchInterval: (query) =>
+			query.state.data?.status === "generating" ? 2000 : false,
+	});
 
 	return (
 		<>
 			{isLoading && <div>Loading...</div>}
-			{data && (
+			{data?.status === "generating" && <div>Generating summary...</div>}
+			{data?.status === "ready" && (
 				<Tabs defaultValue="summary">
 					<TabsList className="mx-auto w-full">
 						<TabsTrigger value="summary">Summary</TabsTrigger>

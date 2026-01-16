@@ -49,66 +49,148 @@ ${diff}`;
 
 export const generateSummary = createServerFn()
 	.inputValidator(
-		(data: { owner: string; repo: string; pull_number: number }) => data,
+		(data: {
+			owner: string;
+			repo: string;
+			pull_number: number;
+			wait?: boolean;
+		}) => data,
 	)
-	.handler(async ({ data: { owner, repo, pull_number } }) => {
-		const githubToken = await $getGithubToken();
-		const result = await request(
-			"GET /repos/{owner}/{repo}/pulls/{pull_number}",
-			{
+	.handler(async ({ data: { owner, repo, pull_number, wait } }) => {
+		const shouldWait = wait ?? true;
+		const prKey = {
+			owner_repo_number: {
 				owner,
 				repo,
-				pull_number: +pull_number,
-				headers: {
-					authorization: `Bearer ${githubToken}`,
-					"X-GitHub-Api-Version": "2022-11-28",
-					Accept: "application/vnd.github.v3.diff",
-				},
-			},
-		);
-
-		const diff = result.data;
-
-		const cleanedDiff = (diff as any as string).replaceAll(
-			"```",
-			"<diff-buddy-code-block>",
-		);
-
-		const openrouter = createOpenRouter({
-			apiKey: process.env.OPENROUTER_API_KEY ?? "",
-		});
-
-		const { text } = await generateText({
-			model: openrouter("anthropic/claude-haiku-4.5"),
-			prompt: getPrompt(cleanedDiff as any as string),
-		});
-
-		// Replace ``` with quad, and then go back and replace the old back to ```
-		const cleanedText = text
-			.replaceAll("```", "````")
-			.replaceAll("<diff-buddy-code-block>", "```");
-
-		// Upsert the PR row
-		await prisma.pullRequest.upsert({
-			where: {
-				owner_repo_number: {
-					owner: owner,
-					repo: repo,
-					number: +pull_number,
-				},
-			},
-			update: {
-				diff: diff as any as string,
-				summary: cleanedText,
-			},
-			create: {
-				owner: owner,
-				repo: repo,
 				number: +pull_number,
-				diff: diff as any as string,
-				summary: cleanedText,
+			},
+		};
+
+		const existing = await prisma.pullRequest.findUnique({
+			where: prKey,
+		});
+
+		if (existing?.summary && existing?.diff) {
+			return {
+				status: "ready",
+				summary: existing.summary,
+				diff: existing.diff,
+			};
+		}
+
+		const lockResult = await prisma.pullRequest.updateMany({
+			where: {
+				owner,
+				repo,
+				number: +pull_number,
+				summary: null,
+				summaryStatus: {
+					not: "generating",
+				},
+			},
+			data: {
+				summaryStatus: "generating",
 			},
 		});
 
-		return { summary: cleanedText, diff: diff as any };
+		if (lockResult.count === 0) {
+			try {
+				await prisma.pullRequest.create({
+					data: {
+						owner,
+						repo,
+						number: +pull_number,
+						summaryStatus: "generating",
+					},
+				});
+			} catch {
+				const inProgress = await prisma.pullRequest.findUnique({
+					where: prKey,
+				});
+
+				if (inProgress?.summary && inProgress?.diff) {
+					return {
+						status: "ready",
+						summary: inProgress.summary,
+						diff: inProgress.diff,
+					};
+				}
+
+				return {
+					status: "generating",
+				};
+			}
+		}
+
+		const runGeneration = async () => {
+			try {
+				const githubToken = await $getGithubToken();
+				const result = await request(
+					"GET /repos/{owner}/{repo}/pulls/{pull_number}",
+					{
+						owner,
+						repo,
+						pull_number: +pull_number,
+						headers: {
+							authorization: `Bearer ${githubToken}`,
+							"X-GitHub-Api-Version": "2022-11-28",
+							Accept: "application/vnd.github.v3.diff",
+						},
+					},
+				);
+
+				const diff = result.data;
+
+				const cleanedDiff = (diff as any as string).replaceAll(
+					"```",
+					"<diff-buddy-code-block>",
+				);
+
+				const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+				if (!openRouterApiKey) {
+					throw new Error("Missing OPENROUTER_API_KEY. Set it in .env.local.");
+				}
+
+				const openrouter = createOpenRouter({
+					apiKey: openRouterApiKey,
+				});
+
+				const { text } = await generateText({
+					model: openrouter("anthropic/claude-haiku-4.5"),
+					prompt: getPrompt(cleanedDiff as any as string),
+				});
+
+				// Replace ``` with quad, and then go back and replace the old back to ```
+				const cleanedText = text
+					.replaceAll("```", "````")
+					.replaceAll("<diff-buddy-code-block>", "```");
+
+				await prisma.pullRequest.update({
+					where: prKey,
+					data: {
+						diff: diff as any as string,
+						summary: cleanedText,
+						summaryStatus: "ready",
+					},
+				});
+
+				return { status: "ready", summary: cleanedText, diff: diff as any };
+			} catch (error) {
+				await prisma.pullRequest.update({
+					where: prKey,
+					data: {
+						summaryStatus: "error",
+					},
+				});
+
+				throw error;
+			}
+		};
+
+		if (!shouldWait) {
+			void runGeneration();
+			return { status: "generating" };
+		}
+
+		return runGeneration();
 	});
