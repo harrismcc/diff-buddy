@@ -10,6 +10,10 @@ export const Route = createFileRoute("/_authenticated/pr/$prNumber/")({
 });
 
 function BlogPage() {
+	const { prNumber } = Route.useParams();
 	const data = Route.useLoaderData();
-	return <MarkdownViewer content={data} />;
+	const getFullDiffUrl = (filePath: string) =>
+		`/pr/${prNumber}/diff?file=${encodeURIComponent(filePath)}`;
+
+	return <MarkdownViewer content={data} getFullDiffUrl={getFullDiffUrl} />;
 }

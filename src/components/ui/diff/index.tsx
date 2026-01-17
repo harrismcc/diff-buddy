@@ -76,7 +76,18 @@ export interface DiffProps
 	language?: string;
 }
 
-export const Hunk = ({ hunk }: { hunk: HunkType | SkipBlock }) => {
+type SkipBlockAction = {
+	label: string;
+	onClick: () => void;
+};
+
+export const Hunk = ({
+	hunk,
+	skipBlockAction,
+}: {
+	hunk: HunkType | SkipBlock;
+	skipBlockAction?: SkipBlockAction;
+}) => {
 	return hunk.type === "hunk" ? (
 		<>
 			{hunk.lines.map((line, index) => (
@@ -84,7 +95,11 @@ export const Hunk = ({ hunk }: { hunk: HunkType | SkipBlock }) => {
 			))}
 		</>
 	) : (
-		<SkipBlockRow lines={hunk.count} content={hunk.content} />
+		<SkipBlockRow
+			lines={hunk.count}
+			content={hunk.content}
+			action={skipBlockAction}
+		/>
 	);
 };
 
@@ -117,23 +132,75 @@ export const Diff: React.FC<DiffProps> = ({
 const SkipBlockRow: React.FC<{
 	lines: number;
 	content?: string;
-}> = ({ lines, content }) => (
-	<>
-		<tr className="h-4" />
-		<tr className={cn("h-10 font-mono bg-muted text-muted-foreground")}>
-			<td />
-			<td className="opacity-50 select-none">
-				<ChevronsUpDown className="size-4 mx-auto" />
-			</td>
-			<td>
-				<span className="px-0 sticky left-2 italic opacity-50">
-					{content || `${lines} lines hidden`}
-				</span>
-			</td>
-		</tr>
-		<tr className="h-4" />
-	</>
-);
+	action?: SkipBlockAction;
+}> = ({ lines, content, action }) => {
+	const [isExpanded, setIsExpanded] = React.useState(false);
+
+	const toggleExpanded = () => {
+		setIsExpanded((prev) => !prev);
+	};
+
+	const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+		if (event.key === "Enter" || event.key === " ") {
+			event.preventDefault();
+			toggleExpanded();
+		}
+	};
+
+	return (
+		<>
+			<tr className="h-4" />
+			<tr
+				className={cn(
+					"h-10 font-mono bg-muted text-muted-foreground cursor-pointer",
+					{
+						"bg-muted/70": isExpanded,
+					},
+				)}
+				role="button"
+				tabIndex={0}
+				aria-expanded={isExpanded}
+				onClick={toggleExpanded}
+				onKeyDown={handleKeyDown}
+			>
+				<td />
+				<td className="opacity-50 select-none">
+					<ChevronsUpDown
+						className={cn("size-4 mx-auto transition-transform", {
+							"rotate-180": isExpanded,
+						})}
+					/>
+				</td>
+				<td>
+					<span className="px-0 sticky left-2 italic opacity-50">
+						{content || `${lines} lines hidden`}
+					</span>
+				</td>
+			</tr>
+			{isExpanded && (
+				<tr className="bg-muted/40 text-muted-foreground text-xs">
+					<td />
+					<td />
+					<td className="py-2">
+						<div className="flex items-center gap-2">
+							<span>Hidden lines are not included in this diff.</span>
+							{action && (
+								<button
+									type="button"
+									onClick={action.onClick}
+									className="text-primary underline decoration-primary/40 underline-offset-4 hover:text-primary/80 hover:decoration-primary/70"
+								>
+									{action.label}
+								</button>
+							)}
+						</div>
+					</td>
+				</tr>
+			)}
+			<tr className="h-4" />
+		</>
+	);
+};
 
 const Line: React.FC<{
 	line: LineType;

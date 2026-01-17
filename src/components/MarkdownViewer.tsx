@@ -7,6 +7,7 @@ import { TableOfContents, type TocItem } from "./TableOfContents";
 
 interface MarkdownViewerProps {
 	content: string;
+	getFullDiffUrl?: (filePath: string) => string;
 }
 
 function extractHeadings(markdown: string): TocItem[] {
@@ -28,7 +29,10 @@ function extractHeadings(markdown: string): TocItem[] {
 	return headings;
 }
 
-export const MarkdownViewer = memo(function MarkdownViewer({ content }: MarkdownViewerProps) {
+export const MarkdownViewer = memo(function MarkdownViewer({
+	content,
+	getFullDiffUrl,
+}: MarkdownViewerProps) {
 	const headings = useMemo(() => extractHeadings(content), [content]);
 	const components: Components = useMemo(
 		() => ({
@@ -113,7 +117,7 @@ export const MarkdownViewer = memo(function MarkdownViewer({ content }: Markdown
 				if (isDiff) {
 					return (
 						<div className="my-4 not-prose">
-							<DiffViewer diff={textContent} />
+							<DiffViewer diff={textContent} getFullDiffUrl={getFullDiffUrl} />
 						</div>
 					);
 				}
@@ -126,7 +130,7 @@ export const MarkdownViewer = memo(function MarkdownViewer({ content }: Markdown
 				);
 			},
 		}),
-		[],
+		[getFullDiffUrl],
 	);
 
 	return (

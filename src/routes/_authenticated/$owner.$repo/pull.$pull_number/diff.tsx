@@ -1,47 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MarkdownViewer } from "@/components/MarkdownViewer";
-import { createServerFn } from "@tanstack/react-start";
-import { prisma } from "@/db";
-import { ErrorComponent } from "@/components/Error";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import DiffViewer from "@/components/DiffViewer";
 import {
 	getPrQueryOptions,
 	type PrQueryResult,
 	type SummaryStage,
 } from "@/queries/prQueryOptions";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-
-export const getPrRow = createServerFn()
-	.inputValidator(
-		(data: { owner: string; repo: string; pull_number: number }) => data,
-	)
-	.handler(async ({ data: { owner, repo, pull_number } }) => {
-		const row = await prisma.pullRequest.findFirst({
-			where: {
-				owner,
-				repo,
-				number: pull_number,
-			},
-		});
-
-		return row;
-	});
 
 export const Route = createFileRoute(
-	"/_authenticated/$owner/$repo/pull/$pull_number/",
+	"/_authenticated/$owner/$repo/pull/$pull_number/diff",
 )({
-	component: BlogPage,
+	component: DiffPage,
 	loader: async ({ params: { owner, repo, pull_number }, context }) => {
 		context.queryClient.prefetchQuery(
 			getPrQueryOptions(owner, repo, +pull_number),
 		);
 	},
-	errorComponent: ErrorComponent,
+	validateSearch: (search: Record<string, unknown>) => ({
+		file: typeof search.file === "string" ? search.file : undefined,
+	}),
 });
 
-function BlogPage() {
-	// const data = Route.useLoaderData();
+function DiffPage() {
 	const { owner, repo, pull_number } = Route.useParams();
+	const { file } = Route.useSearch();
 	const { data, isLoading } = useQuery<PrQueryResult>({
 		...getPrQueryOptions(owner, repo, +pull_number),
 		refetchInterval: (query) =>
@@ -52,11 +35,6 @@ function BlogPage() {
 	useEffect(() => {
 		setIsClient(true);
 	}, []);
-
-	const getFullDiffUrl = (filePath: string) =>
-		`/${owner}/${repo}/pull/${pull_number}/diff?file=${encodeURIComponent(
-			filePath,
-		)}`;
 
 	const stageLabels: Record<SummaryStage, string> = {
 		fetching_diff: "Fetching diff",
@@ -85,10 +63,7 @@ function BlogPage() {
 				<div>Summary generation failed. Please try again.</div>
 			)}
 			{data?.status === "ready" && (
-				<MarkdownViewer
-					content={data.summary}
-					getFullDiffUrl={getFullDiffUrl}
-				/>
+				<DiffViewer diff={data.diff} scrollToFile={file} />
 			)}
 		</>
 	);

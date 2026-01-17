@@ -74,12 +74,15 @@ model Verification {
 }
 
 model PullRequest {
-  owner         String
-  repo          String
-  number        Int
-  diff          String?
-  summary       String?
-  summaryStatus SummaryStatus @default(idle)
+  owner            String
+  repo             String
+  number           Int
+  diff             String?
+  summary          String?
+  headSha          String?
+  summaryStatus    SummaryStatus @default(idle)
+  summaryStage     SummaryStage?
+  summaryStartedAt DateTime?
 
   @@id([owner, repo, number])
 }
@@ -89,4 +92,10 @@ enum SummaryStatus {
   generating
   ready
   error
+}
+
+enum SummaryStage {
+  fetching_diff
+  prompting_model
+  saving_result
 }
